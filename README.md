@@ -1,83 +1,193 @@
 # AlloPockets
 
-AlloPockets is a machine learning allosteric site prediction tool. Given a protein structure, it detects pockets, computes descriptors, and outputs a ranked table of pockets and three-dimensional visualization (`predict.ipynb`). It was trained using a curated and updated dataset of >3,000 structures of proteins with bound small-molecule allosteric modulators (`database.ipynb`).
+**AlloPockets** is a modular Python package and CLI suite for machine learning-based allosteric pocket identification, allosteric communication pathway tracing, and 3D cavity debugging.
 
+Given a protein structure (PDB or mmCIF), AlloPockets detects candidate cavities with `fpocket`, extracts comprehensive geometric and physico-chemical descriptors, and ranks pockets using a reproducible Gradient Boost classifier trained on a curated database of >3,000 allosteric protein complexes.
 
-## Quickstart
+---
 
-### Setup
+## What AlloPockets Does Now
 
-Clone the repository and create the conda environment (recommended: [Miniforge](https://conda-forge.org/download/)):
+- **Standard Python Package**: Formally structured under [`allopockets/`](allopockets/) with PEP 561 typing compliance (`py.typed`).
+- **5 Standalone CLI Binaries**:
+  - `allopockets`: Main unified CLI dispatcher.
+  - `allopockets-predict`: End-to-end structure prediction and communication pathway tracing.
+  - `allopockets-prepare-data`: Direct training dataset extraction from `data/database.db` with ground-truth labeling (`site_in_pocket >= 0.65`).
+  - `allopockets-train`: Reproducible Gradient Boost model training with 5-fold Stratified Group Cross-Validation.
+  - `allopockets-inspect-3d`: Interactive 3D visual pocket debugger with terminal diagnostics and standalone 3Dmol.js HTML viewer generation.
+- **Reproducible ML Pipeline**: Replaced opaque AutoGluon dependencies with a transparent Gradient Boost architecture (`HistGradientBoostingClassifier`, `LightGBM`, `XGBoost`), tracking MCC, ROC-AUC, PR-AUC, F1, and structural Top-1 / Top-3 / Top-5 retrieval rates.
+- **Dedicated Data Directory**: Database files moved out of the package root into [`data/database.db`](data/database.db).
+- **Consolidated Notebooks**: All analysis and benchmark notebooks are organized in [`notebooks/`](notebooks/).
 
+---
+
+## Installation
+
+### 1. Create and Activate an Isolated Virtual Environment
 ```bash
-git clone https://github.com/zoecournia/AlloPockets
-cd AlloPockets
-CONDA_CHANNEL_PRIORITY=disabled PIP_NO_DEPS=1 conda env create -n allopockets --file conda_env.yaml
-conda activate allopockets
+python3 -m venv .venv
+source .venv/bin/activate
 ```
 
-### Quickstart
+### 2. Install AlloPockets in Editable Mode
+```bash
+# Core package + test dependencies
+pip install -e ".[dev]"
 
+# Optional: with LightGBM and XGBoost support
+pip install -e ".[dev,gbm]"
+```
+
+---
+
+## Quickstart Examples
+
+### A. Command Line Interface (CLI)
+
+#### 1. Allosteric Pocket Prediction
+Run pocket detection, feature extraction, and allosteric probability ranking on a query structure:
+```bash
+allopockets-predict --pdb 6t4k --chains A --outdir predict_results
+```
+
+#### 2. Extract Training Data from `database.db`
+Extract candidate cavities and 186 biophysical features directly from `data/database.db`:
+```bash
+allopockets-prepare-data --db data/database.db --outdir data/training --threshold 0.65
+```
+
+#### 3. Train a Reproducible Pocket Classifier
+Train a 5-fold grouped cross-validated Gradient Boost model with out-of-fold metrics and export serialized artifacts (`model.joblib`, `features.json`, `metrics.json`):
+```bash
+allopockets-train --data data/training/dataset.parquet --model hist_gradient_boost --splits 5 --outdir models/my_pocket_model
+```
+
+#### 4. 3D Pocket Visual Debugger & Inspector
+Inspect 3D coordinates, alpha spheres, volume, and alignment with the ground-truth modulator site:
+```bash
+allopockets-inspect-3d --pdb 6t4k --pocket pocket1 --db data/database.db --html 6t4k_pocket1_debug.html
+```
+
+#### 5. Unified Command Dispatcher
+All tools can also be invoked via the root `allopockets` command:
+```bash
+allopockets --help
+allopockets predict --help
+allopockets prepare-data --help
+allopockets train --help
+allopockets inspect-3d --help
+```
+
+---
+
+### B. Python API
+
+#### Running Prediction in Python:
 ```python
-from predict import get_cif, predict
+from allopockets import predict, get_cif
 
+# Fetch structure
 pdb = get_cif(pdb_id="6t4k")
-# pdb = get_cif(file="your_structure.cif")    # also supports .pdb / .cif / .cif.gz
 
+# Predict allosteric pockets and rank by score
 clean_pdb, predictions = predict(
     pdb,
-    protein_chains=["A"],          
-    email="you@institution.edu"               # to retrieve a MSA from the ColabFold server
+    protein_chains=["A"],
+    email="you@institution.edu"  # for ColabFold MSA retrieval (optional)
 )
 
-predictions                                   # a table ranked by "Allosteric score"
+print(predictions.head())
 ```
 
-**Run this code interactively using the `predict.ipynb` notebook:**
+#### Training and Model Inspection:
+```python
+from allopockets.ml.models import PocketClassifier
+from allopockets.ml.config import ModelConfig
+from allopockets.ml.dataset import load_pocket_dataset
 
+# Load dataset
+df = load_pocket_dataset("data/training/dataset.parquet")
+
+# Initialize and train classifier
+clf = PocketClassifier(config=ModelConfig(model_type="hist_gradient_boost", learning_rate=0.03))
+# Fit and score
+clf.save("models/my_model")
+```
+
+#### 3D HTML Viewer Generation:
+```python
+from allopockets.viz.html_viewer import generate_3d_pocket_html
+
+html = generate_3d_pocket_html(
+    pdb_id="6t4k",
+    pocket_id="pocket1",
+    pdb_cif_content=pdb_cif_text,
+    pocket_cif_content=pocket_cif_text,
+    metrics={"site_in_pocket": 0.85, "volume": 720.0, "label": 1},
+    output_path="viewer.html"
+)
+```
+
+---
+
+## Repository Layout
+
+```
+AlloPockets/
+├── allopockets/             # Main installable Python package
+│   ├── py.typed             # PEP 561 typing marker
+│   ├── cli.py               # Click CLI entrypoints
+│   ├── predict.py           # Prediction & pathway calculation
+│   ├── database/            # Database ORM models (PDB, Site) & CIF utilities
+│   ├── features/            # Biophysical descriptor extraction (DSSP, FreeSASA, etc.)
+│   ├── ml/                  # ML models, CV splits, data preparation & training
+│   ├── pockets/             # fpocket execution wrapper & Pocket geometry
+│   └── viz/                 # Interactive 3Dmol.js HTML visualizer & 3D debugger
+├── data/                    # Data directory (external to python package)
+│   ├── database.db          # SQLite database of curated allosteric structures
+│   └── README.md            # Data sources and download links
+├── notebooks/               # Centralized Jupyter notebooks directory
+│   ├── predict.ipynb        # User interactive prediction notebook
+│   ├── predict_advanced.ipynb
+│   ├── database.ipynb       # Database exploration notebook
+│   ├── database/            # Database curation & statistics notebooks
+│   ├── training_data/       # Clustering, minimal structures & feature notebooks
+│   └── models/              # Model ablation, benchmarking & comparison notebooks
+├── models/                  # Pre-trained model weights & deploy artifacts
+│   └── pockets_physchem_deploy/
+├── tests/                   # Pytest test suite
+├── predict.py               # Root backward-compatible wrapper
+├── pyproject.toml           # Build system, dependencies, and mypy configuration
+└── README.md
+```
+
+---
+
+## Development & Verification
+
+Run the automated test suite:
 ```bash
-jupyter lab predict.ipynb
+pytest tests/ -v
 ```
 
+Run static type checking with `mypy`:
+```bash
+mypy allopockets tests
+```
 
-## HHBlits for multiple predictions
+---
 
-`predict.ipynb` uses the [ColabFold](https://github.com/sokrypton/ColabFold) server to obtain a Multiple Sequence Alignment to build an HHM file, replacing HHBlits resource-intensive calculations for users. Please respect its usage limits, uphold [ColabFold's MSA server usage limits](https://github.com/sokrypton/ColabFold#:~:text=Is%20it%20okay%20to%20use%20the%20MMseqs2%20MSA%20server%20(cf.run_mmseqs2)%20on%20a%20local%20computer%3F) and [acknowledge the tool](https://github.com/sokrypton/ColabFold#how-do-i-reference-this-work) appropriately. 
+## HHBlits for Offline Computations
 
-To perform **multiple AlloPockets computations**, please switch to the local setup of HHBlits:
+By default, ColabFold's MSA server is used for sequence profile extraction. For batch offline workflows:
+1. Download and extract the [UniRef30 database](https://wwwuser.gwdguser.de/~compbiol/uniclust/2023_02).
+2. Pass the database directory via `--uniref-path` in the CLI or `uniref_path=` in `get_features()`.
 
-- Download and uncompress the [UniRef30 database](https://wwwuser.gwdguser.de/~compbiol/uniclust/2023_02) (e.g., `tar -xzf UniRef30_2023_02_hhsuite.tar.gz`).
-- Skip the MSA retrieval, and instead provide the path to the uncompressed database to the `get_features` function with the argument `uniref_path=`
-
-
-## Repository layout
-
-Entry points:
-- `predict.ipynb`: main user-facing notebook for running predictions and visualizing results.
-- `predict_advanced.ipynb`: advanced/extended prediction notebook.
-- `predict.py`: core Python functions used by the notebooks (prediction pipeline, feature preparation, helpers).
-- `database.ipynb`: top-level notebook related to the database (see also `database/` folder below).
-
-Database construction/curation:
-- `database/`: notebooks and code for assembling/curating the allosteric site database:
-  - `database/data/README.md`: links/instructions for obtaining source datasets.
-  - `database/src/`, `database/data/`: supporting code/data folders for database generation.
-- `database.db`: SQLite database file tracked in the repo.
-
-Training data generation:
-- `training_data/`: notebooks for dataset preparation and feature generation (plus `training_data/utils/`).
-
-Model development/comparisons:
-- `models/`: notebooks related to model variants and experiments, plus the deployed predictor artifacts:
-  - `models/pockets_physchem_deploy/`: exported model used for prediction (loaded by the code at runtime).
-  - `models/other_tools/` and `models/other_tools_apos/`: notebooks and notes for benchmarking other tools.
-
+---
 
 ## Cite
 
-Paper/preprint reference: TBA.
-
-For now, if you use AlloPockets, please acknowledge this repository:
+If you use AlloPockets, please cite:
 
 ```bibtex
 @software{AlloPockets,
@@ -92,6 +202,6 @@ For now, if you use AlloPockets, please acknowledge this repository:
 
 This project is licensed under the GNU General Public License v3.0 (GPL-3.0).
 
-**Note:** PyRosetta dependency requires separate licensing for commercial use [www.pyrosetta.org](https://www.pyrosetta.org).
+**Note:** PyRosetta dependency requires separate licensing for commercial use ([www.pyrosetta.org](https://www.pyrosetta.org)).
 
 ![6T4K](https://github.com/user-attachments/assets/f392b49f-500a-4e38-acd3-fd431f0aaa9d)

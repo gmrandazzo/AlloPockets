@@ -18,72 +18,49 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-Backwards-compatibility shim for AlloPockets.
-Re-exports the core prediction API from the new installable `allopockets` package.
+AlloPockets: Allosteric Pocket Prediction, Pathway Tracing, and 3D Visualization.
 """
 
+__version__ = "1.0.0"
+
+from allopockets.pockets import Pocket, run_fpocket, get_pockets_info
+from allopockets.ml import PocketClassifier, prepare_dataset, train_pipeline
+from allopockets.viz import inspect_pocket_cli, generate_3d_pocket_html
 from allopockets.predict import (
-    path,
-    Cif,
-    write_cif,
-    standardize,
-    convert_pdb,
-    complete_cif,
     get_cif,
-    get_site,
-    Site,
     get_clean_pdb,
-    view_pdb,
-    colors,
     get_pockets,
     get_pocket,
-    view_pockets,
-    HHBlitsF_msa,
-    DSSPF,
-    FClasses,
-    get_colabfold_msa,
     get_features,
     get_pockets_features,
-    prepare_data,
-    load_default_predictor,
     predict,
-    get_correlationplus_network,
-    get_prs_network,
     get_pathways,
-    paultol_palette,
+    view_pdb,
+    view_pockets,
     view_pockets_pathways,
-    run_prediction_cli,
+    Site,
 )
 
 __all__ = [
-    "path",
-    "Cif",
-    "write_cif",
-    "standardize",
-    "convert_pdb",
-    "complete_cif",
+    "__version__",
     "get_cif",
-    "get_site",
-    "Site",
     "get_clean_pdb",
-    "view_pdb",
-    "colors",
     "get_pockets",
     "get_pocket",
-    "view_pockets",
-    "HHBlitsF_msa",
-    "DSSPF",
-    "FClasses",
-    "get_colabfold_msa",
     "get_features",
     "get_pockets_features",
-    "prepare_data",
-    "load_default_predictor",
     "predict",
-    "get_correlationplus_network",
-    "get_prs_network",
     "get_pathways",
-    "paultol_palette",
+    "view_pdb",
+    "view_pockets",
     "view_pockets_pathways",
-    "run_prediction_cli",
+    "Site",
+    "Pocket",
+    "run_fpocket",
+    "get_pockets_info",
+    "PocketClassifier",
+    "prepare_dataset",
+    "train_pipeline",
+    "inspect_pocket_cli",
+    "generate_3d_pocket_html",
 ]
