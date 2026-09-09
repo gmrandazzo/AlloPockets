@@ -119,7 +119,7 @@ def get_fixed_atoms(f, pdb, orig_atoms, no_alt=True, no_hetatm=True, standard_re
     merged = orig_atoms.merge(newdf, on=mergecols, how="right", suffixes=(None, "_new"))
 
     # Renumber atom ids
-    merged.loc[:, "id"] = range(1, len(merged) + 1)
+    merged.loc[:, "id"] = [str(i) for i in range(1, len(merged) + 1)]
 
     # Transfer the new data for the newly added atoms
     news = merged[orig_atoms.columns].isna().any(axis=1)

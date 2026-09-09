@@ -20,6 +20,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 Data preparation pipeline to generate training datasets directly from database.db.
 """
 
+from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
 import logging
 import sqlite3
@@ -138,10 +140,14 @@ def prepare_dataset(
     output_dir: str = "data",
     limit: Optional[int] = None,
     pdb_list: Optional[List[str]] = None,
+    pdb_file: Optional[str] = None,
     label_threshold: float = 0.65,
+    workers: int = 6,
+    output_filename: str = "pockets_dataset.parquet",
 ) -> pd.DataFrame:
     """
     Main entrypoint to generate training data directly from database.db.
+    Supports multi-threaded parallel extraction across PDB complexes.
     """
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
     resolved_db = Path(db_path)
@@ -152,7 +158,18 @@ def prepare_dataset(
     cache_dir = out_path / "cache"
     cache_dir.mkdir(parents=True, exist_ok=True)
 
-    # Connect to database.db
+    # Load PDB list from file if provided
+    if pdb_file:
+        pf = Path(pdb_file)
+        if pf.suffix.lower() == ".csv":
+            df_p = pd.read_csv(pf)
+            col = "pdb" if "pdb" in df_p.columns else df_p.columns[0]
+            pdb_list = df_p[col].dropna().astype(str).tolist()
+        else:
+            with open(pf, "r") as f:
+                pdb_list = [line.strip() for line in f if line.strip() and not line.startswith("#")]
+
+    # Connect to database.db and pre-fetch sites to avoid worker lock contention
     conn = sqlite3.connect(str(resolved_db))
     cursor = conn.cursor()
 
@@ -167,32 +184,35 @@ def prepare_dataset(
     if limit:
         all_entries = all_entries[:limit]
 
-    logger.info(f"Preparing dataset for {len(all_entries)} structures from {db_path}...")
+    # Pre-fetch site annotations into memory
+    cursor.execute("SELECT pdb_id, site, modulator, info FROM site")
+    sites_by_pdb: Dict[str, List[Dict]] = defaultdict(list)
+    for p_id, s_raw, m_raw, i_raw in cursor.fetchall():
+        try:
+            sites_by_pdb[str(p_id)].append(
+                {
+                    "site": json.loads(s_raw) if isinstance(s_raw, str) else s_raw,
+                    "modulator": json.loads(m_raw) if isinstance(m_raw, str) else m_raw,
+                    "info": json.loads(i_raw) if isinstance(i_raw, str) else i_raw,
+                }
+            )
+        except Exception:
+            continue
+    conn.close()
 
-    results = []
-    for entry_id in tqdm(all_entries, desc="Extracting PDB complexes"):
+    logger.info(
+        f"Preparing dataset for {len(all_entries)} structures from {db_path} using {workers} workers..."
+    )
+
+    def _process_entry(entry_id: str) -> Optional[pd.DataFrame]:
         cache_file = cache_dir / f"{entry_id}.parquet"
         if cache_file.exists():
-            df_entry = pd.read_parquet(cache_file)
-            results.append(df_entry)
-            continue
-
-        # Fetch site records for this PDB
-        cursor.execute("SELECT site, modulator, info FROM site WHERE pdb_id = ?", (entry_id,))
-        site_rows = cursor.fetchall()
-        site_records = []
-        for s_raw, m_raw, i_raw in site_rows:
             try:
-                site_records.append(
-                    {
-                        "site": json.loads(s_raw) if isinstance(s_raw, str) else s_raw,
-                        "modulator": json.loads(m_raw) if isinstance(m_raw, str) else m_raw,
-                        "info": json.loads(i_raw) if isinstance(i_raw, str) else i_raw,
-                    }
-                )
+                return pd.read_parquet(cache_file)
             except Exception:
-                continue
+                pass
 
+        site_records = sites_by_pdb.get(entry_id, [])
         try:
             df_entry = process_pdb_structure(
                 entry_id=entry_id,
@@ -202,21 +222,40 @@ def prepare_dataset(
             )
             if not df_entry.empty:
                 df_entry.to_parquet(cache_file, index=False)
-                results.append(df_entry)
+                return df_entry
         except Exception as e:
             logger.warning(f"Failed to process {entry_id}: {e}")
-            continue
+        return None
+
+    results = []
+    if workers <= 1:
+        for entry_id in tqdm(all_entries, desc="Extracting PDB complexes"):
+            res = _process_entry(entry_id)
+            if res is not None and not res.empty:
+                results.append(res)
+    else:
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            future_to_pdb = {executor.submit(_process_entry, eid): eid for eid in all_entries}
+            for future in tqdm(
+                as_completed(future_to_pdb), total=len(all_entries), desc="Extracting PDB complexes"
+            ):
+                res = future.result()
+                if res is not None and not res.empty:
+                    results.append(res)
 
     if not results:
         logger.error("No pockets extracted.")
         return pd.DataFrame()
 
     full_dataset = pd.concat(results, ignore_index=True)
-    full_dataset.to_parquet(out_path / "pockets_dataset.parquet", index=False)
-    full_dataset.to_pickle(out_path / "pockets_dataset.pkl")
+    # Sort deterministically by PDB and pocket
+    full_dataset = full_dataset.sort_values(["Pockets_pdb", "Pockets_pocket"]).reset_index(
+        drop=True
+    )
+    full_dataset.to_parquet(out_path / output_filename, index=False)
 
-    pos_count = (full_dataset["Label_label"] == 1).sum()
-    neg_count = (full_dataset["Label_label"] == 0).sum()
+    pos_count = int((full_dataset["Label_label"] == 1).sum())
+    neg_count = int((full_dataset["Label_label"] == 0).sum())
     logger.info(
         f"Dataset ready: {len(full_dataset)} total pockets across {len(results)} PDBs. "
         f"Positives: {pos_count} ({pos_count/len(full_dataset)*100:.1f}%), Negatives: {neg_count}."

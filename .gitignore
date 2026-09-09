@@ -223,3 +223,7 @@ gradio/
 .gradio/
 
 ensembles/
+
+# Benchmark temporary extraction files
+data/benchmark/work/
+data/benchmark/cache/

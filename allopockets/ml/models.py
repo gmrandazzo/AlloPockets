@@ -189,6 +189,19 @@ class PocketClassifier:
         }
         with open(out / "metadata.json", "w") as f:
             json.dump(metadata, f, indent=2)
+
+        if hasattr(self.model, "feature_importances_"):
+            try:
+                fi_df = pd.DataFrame(
+                    {
+                        "feature": self.feature_names,
+                        "importance": self.model.feature_importances_,
+                    }
+                ).sort_values("importance", ascending=False)
+                fi_df.to_csv(out / "feature_importance.csv", index=False)
+            except Exception as e:
+                logger.debug(f"Could not compute feature importances: {e}")
+
         logger.info(f"Saved model to {out}")
 
     @classmethod

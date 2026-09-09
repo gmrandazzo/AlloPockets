@@ -70,12 +70,29 @@ def predict_cli(pdb_input, chains, email, uniref_path, outdir, model_path):
 )
 @click.option("--limit", default=None, type=int, help="Limit number of PDBs for quick testing")
 @click.option(
+    "--pdb-file",
+    default=None,
+    help="Path to CSV or text file containing PDB IDs to extract",
+)
+@click.option(
     "--threshold",
     default=0.65,
     type=float,
     help="Overlap threshold for positive allosteric pockets (default: 0.65)",
 )
-def prepare_data_cli(db_path, outdir, limit, threshold):
+@click.option(
+    "--workers",
+    default=6,
+    type=int,
+    help="Number of parallel extraction workers (default: 6)",
+)
+@click.option(
+    "--filename",
+    "output_filename",
+    default="pockets_dataset.parquet",
+    help="Output dataset filename (default: pockets_dataset.parquet)",
+)
+def prepare_data_cli(db_path, outdir, limit, pdb_file, threshold, workers, output_filename):
     """Extract and featurize pocket dataset directly from database.db."""
     from allopockets.ml.prepare import prepare_dataset
 
@@ -83,7 +100,10 @@ def prepare_data_cli(db_path, outdir, limit, threshold):
         db_path=db_path,
         output_dir=outdir,
         limit=limit,
+        pdb_file=pdb_file,
         label_threshold=threshold,
+        workers=workers,
+        output_filename=output_filename,
     )
 
 
@@ -98,7 +118,14 @@ def prepare_data_cli(db_path, outdir, limit, threshold):
     type=click.Choice(["hist_gradient_boost", "lightgbm", "xgboost"]),
 )
 @click.option("--seed", default=42, type=int, help="Random seed for reproducibility (default: 42)")
-@click.option("--splits", default=5, type=int, help="Number of CV splits (default: 5)")
+@click.option(
+    "--splits",
+    "--n-splits",
+    "splits",
+    default=5,
+    type=int,
+    help="Number of CV splits (default: 5)",
+)
 @click.option("--lr", default=0.03, type=float, help="Learning rate (default: 0.03)")
 @click.option(
     "--n-estimators", default=300, type=int, help="Number of boosting trees (default: 300)"
@@ -107,7 +134,15 @@ def prepare_data_cli(db_path, outdir, limit, threshold):
 @click.option(
     "--outdir", default="models/lgbm_pocket_classifier", help="Directory to save trained model"
 )
-def train_cli(data_path, model_type, seed, splits, lr, n_estimators, max_depth, outdir):
+@click.option(
+    "--test-data",
+    "test_data_path",
+    default=None,
+    help="Path to independent held-out test dataset (.parquet, .pkl, or .csv)",
+)
+def train_cli(
+    data_path, model_type, seed, splits, lr, n_estimators, max_depth, outdir, test_data_path
+):
     """Train reproducible Gradient Boost pocket classifier with Grouped Stratified CV."""
     from allopockets.ml.train import train_pipeline
 
@@ -120,6 +155,7 @@ def train_cli(data_path, model_type, seed, splits, lr, n_estimators, max_depth, 
         learning_rate=lr,
         n_estimators=n_estimators,
         max_depth=max_depth,
+        test_data_path=test_data_path,
     )
 
 

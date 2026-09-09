@@ -484,10 +484,22 @@ class Site:
             raise Exception("Pass one of 'modulator_residues' or 'residues'")
 
 
-def get_clean_pdb(pdb, protein_chains, path=path):
+def get_clean_pdb(pdb, protein_chains=None, path=path):
     os.makedirs(path, exist_ok=True)
     Cif.path = path
     Cif.original_cifs_path = path
+
+    if protein_chains is None:
+        if hasattr(pdb, "_protein_entities") and pdb._protein_entities:
+            protein_chains = (
+                pdb.residues.query(f"label_entity_id in {pdb._protein_entities}")
+                .label_asym_id.unique()
+                .tolist()
+            )
+        else:
+            protein_chains = pdb.residues.label_asym_id.unique().tolist()
+    else:
+        protein_chains = list(protein_chains)
 
     fixed_structure = get_fixed_structure(pdb, pdb, list(protein_chains), path, save=True)
     with open(f"{path}/{pdb.entry_id}.cif", "w+") as f:

@@ -130,6 +130,35 @@ html = generate_3d_pocket_html(
 
 ---
 
+## Benchmark Training Experiment & Evaluation
+
+AlloPockets includes a reproducible full-benchmark training and evaluation pipeline comparing 229 train protein complexes against 60 independent held-out test complexes.
+
+### Run the Experiment
+Run all stages automatically via:
+```bash
+./scripts/run_full_training_experiment.sh
+```
+
+For complete step-by-step CLI commands, dataset featurization details, and feature importances, see [docs/BENCHMARK_EXPERIMENT.md](docs/BENCHMARK_EXPERIMENT.md).
+
+### Results Summary
+
+| Evaluation Stage | Metric | Score | Description |
+|---|---|---|---|
+| **5-Fold Cross-Validation (OOF)** | **ROC-AUC** | **0.7879** | Area under ROC curve across 5 group folds |
+| (229 PDBs, 8,970 pockets) | **PR-AUC** | **0.0251** | Area under Precision-Recall curve |
+| | **MCC** | **0.0234** | Matthews Correlation Coefficient |
+| | **Top-1 Pocket Retrieval** | **16.3%** | True pocket ranked #1 by predicted score |
+| | **Top-3 Pocket Retrieval** | **34.9%** | True pocket ranked in top 3 |
+| **Independent Held-Out Test Set** | **Test ROC-AUC** | **0.7443** | Generalization ROC-AUC on unseen complexes |
+| (60 PDBs, 2,521 pockets) | **Test PR-AUC** | **0.0311** | Precision-Recall AUC on unseen complexes |
+| | **Test MCC** | **-0.0022** | Held-out MCC at standard threshold |
+| | **Test Top-1 Retrieval** | **12.5%** | Test complexes with true pocket ranked #1 |
+| | **Test Top-3 Retrieval** | **25.0%** | Test complexes with true pocket in top 3 |
+
+---
+
 ## Repository Layout
 
 ```
@@ -145,7 +174,13 @@ AlloPockets/
 │   └── viz/                 # Interactive 3Dmol.js HTML visualizer & 3D debugger
 ├── data/                    # Data directory (external to python package)
 │   ├── database.db          # SQLite database of curated allosteric structures
+│   ├── benchmark/           # Featurized train & test parquet datasets
 │   └── README.md            # Data sources and download links
+├── docs/                    # Technical documentation
+│   └── BENCHMARK_EXPERIMENT.md  # Detailed benchmark training & evaluation guide
+├── models/                  # Pre-trained model weights & benchmark outputs
+│   ├── benchmark_experiment/ # Benchmark model, metrics & feature importance
+│   └── pockets_physchem_deploy/
 ├── notebooks/               # Centralized Jupyter notebooks directory
 │   ├── predict.ipynb        # User interactive prediction notebook
 │   ├── predict_advanced.ipynb
@@ -153,11 +188,11 @@ AlloPockets/
 │   ├── database/            # Database curation & statistics notebooks
 │   ├── training_data/       # Clustering, minimal structures & feature notebooks
 │   └── models/              # Model ablation, benchmarking & comparison notebooks
-├── models/                  # Pre-trained model weights & deploy artifacts
-│   └── pockets_physchem_deploy/
+├── scripts/                 # Automation & utility scripts
+│   └── run_full_training_experiment.sh # End-to-end benchmark script
 ├── tests/                   # Pytest test suite
 ├── predict.py               # Root backward-compatible wrapper
-├── pyproject.toml           # Build system, dependencies, and mypy configuration
+├── pyproject.toml           # Build system, dependencies, and configuration
 └── README.md
 ```
 

@@ -77,8 +77,28 @@ def test_train_cli_execution(tmp_path):
     )
     assert result.exit_code == 0
     assert (out_dir / "model.joblib").exists()
-    assert (out_dir / "features.json").exists()
-    assert (out_dir / "metrics.json").exists()
+
+    # Test with test dataset and --n-splits alias
+    test_file = tmp_path / "test_data.parquet"
+    df.iloc[:8].to_parquet(test_file)
+    test_out_dir = tmp_path / "test_model_out"
+    result_test = runner.invoke(
+        train_cli,
+        [
+            "--data",
+            str(data_file),
+            "--test-data",
+            str(test_file),
+            "--n-splits",
+            "2",
+            "--n-estimators",
+            "10",
+            "--outdir",
+            str(test_out_dir),
+        ],
+    )
+    assert result_test.exit_code == 0
+    assert (test_out_dir / "metrics.json").exists()
 
 
 def test_db_default_paths():

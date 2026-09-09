@@ -23,7 +23,7 @@ Reproducible Gradient Boost model training and evaluation engine.
 import json
 import logging
 from pathlib import Path
-from typing import Dict, Union
+from typing import Any, Dict, Optional, Union
 import numpy as np
 
 from allopockets.ml.config import ModelConfig
@@ -43,6 +43,7 @@ def train_pipeline(
     learning_rate: float = 0.03,
     n_estimators: int = 300,
     max_depth: int = 6,
+    test_data_path: Optional[Union[str, Path]] = None,
 ) -> Dict:
     """
     Execute 5-fold Stratified Group K-Fold cross-validation and export production model.
@@ -136,7 +137,7 @@ def train_pipeline(
         df_eval, pdb_col="pdb", label_col="label", score_col="score"
     )
 
-    summary = {
+    summary: Dict[str, Any] = {
         "model_type": model_type,
         "n_samples": len(df),
         "n_features": len(feature_names),
@@ -151,6 +152,43 @@ def train_pipeline(
     final_clf.fit(df_full_imp[feature_names].values, df_full_imp[target_col].astype(int).values)
     final_clf.save(out_dir)
 
+    # Optional evaluation on held-out test dataset
+    if test_data_path and Path(test_data_path).exists():
+        df_test = load_pocket_dataset(test_data_path)
+        logger.info(f"Evaluating final model on held-out test set ({len(df_test)} samples)...")
+        _, df_test_imp = impute_features(df, df_test, feature_cols=feature_names)
+        assert df_test_imp is not None
+        test_scores = final_clf.predict_score(df_test_imp[feature_names].values)
+
+        test_target_col = (
+            target_col
+            if target_col in df_test.columns
+            else [c for c in df_test.columns if "label" in c.lower()][0]
+        )
+        test_group_col = (
+            group_col
+            if group_col in df_test.columns
+            else [c for c in df_test.columns if "pdb" in c.lower()][0]
+        )
+
+        test_cls_metrics = compute_classification_metrics(
+            df_test_imp[test_target_col].astype(int).values, test_scores
+        )
+        df_test_eval = df_test[[test_group_col, test_target_col]].copy()
+        df_test_eval["score"] = test_scores
+        df_test_eval = df_test_eval.rename(
+            columns={test_group_col: "pdb", test_target_col: "label"}
+        )
+        test_retrieval = compute_topk_retrieval(
+            df_test_eval, pdb_col="pdb", label_col="label", score_col="score"
+        )
+
+        summary["test_metrics"] = {
+            "n_samples": len(df_test),
+            "classification_metrics": test_cls_metrics,
+            "topk_retrieval": test_retrieval,
+        }
+
     with open(out_dir / "metrics.json", "w") as f:
         json.dump(summary, f, indent=2)
 
@@ -161,5 +199,14 @@ def train_pipeline(
     logger.info(
         f"Top-1 Accuracy: {retrieval_metrics['top_1_accuracy']*100:.1f}% | Top-3 Accuracy: {retrieval_metrics['top_3_accuracy']*100:.1f}%"
     )
+
+    if test_data_path and Path(test_data_path).exists():
+        logger.info("=== Held-Out Test Results ===")
+        logger.info(
+            f"Test MCC: {test_cls_metrics['mcc']:.4f} | Test ROC-AUC: {test_cls_metrics['roc_auc']:.4f} | Test PR-AUC: {test_cls_metrics['pr_auc']:.4f}"
+        )
+        logger.info(
+            f"Test Top-1 Accuracy: {test_retrieval['top_1_accuracy']*100:.1f}% | Test Top-3 Accuracy: {test_retrieval['top_3_accuracy']*100:.1f}%"
+        )
 
     return summary
