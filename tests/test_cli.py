@@ -71,12 +71,27 @@ def test_train_cli_execution(tmp_path):
             "2",
             "--n-estimators",
             "10",
+            "--subsample",
+            "0.7",
+            "--colsample",
+            "0.7",
+            "--reg-lambda",
+            "2.0",
             "--outdir",
             str(out_dir),
         ],
     )
     assert result.exit_code == 0
     assert (out_dir / "model.joblib").exists()
+    assert (out_dir / "metrics.json").exists()
+
+    import json
+
+    with open(out_dir / "metrics.json", "r") as f:
+        metrics = json.load(f)
+    assert "mean_fold_classification_metrics" in metrics
+    assert "std_fold_classification_metrics" in metrics
+    assert "oof_classification_metrics" in metrics
 
     # Test with test dataset and --n-splits alias
     test_file = tmp_path / "test_data.parquet"
@@ -93,12 +108,55 @@ def test_train_cli_execution(tmp_path):
             "2",
             "--n-estimators",
             "10",
+            "--subsample",
+            "0.8",
+            "--colsample",
+            "0.8",
+            "--reg-lambda",
+            "1.0",
             "--outdir",
             str(test_out_dir),
         ],
     )
     assert result_test.exit_code == 0
     assert (test_out_dir / "metrics.json").exists()
+
+
+def test_train_cli_autogluon_uninstalled(tmp_path):
+    import numpy as np
+    import pandas as pd
+    from allopockets.ml.config import DEFAULT_FEATURE_NAMES
+
+    # Create small synthetic dataset
+    rows = []
+    for p in range(4):
+        for k in range(2):
+            is_pos = int(k == 0)
+            r = {"Pockets_pdb": f"pdb_{p}", "Pockets_pocket": f"pkt_{k}", "Label_label": is_pos}
+            for feat in DEFAULT_FEATURE_NAMES:
+                r[feat] = np.random.randn()
+            rows.append(r)
+    df = pd.DataFrame(rows)
+    data_file = tmp_path / "ag_train_data.parquet"
+    df.to_parquet(data_file)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        train_cli,
+        [
+            "--data",
+            str(data_file),
+            "--model",
+            "autogluon",
+            "--splits",
+            "2",
+            "--outdir",
+            str(tmp_path / "ag_out"),
+        ],
+    )
+    # AutoGluon requires Python <= 3.11, so on 3.13 it gracefully exits with code 1 and error message
+    assert result.exit_code != 0
+    assert "AutoGluon" in result.output
 
 
 def test_db_default_paths():

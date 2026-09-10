@@ -122,3 +122,61 @@ def test_pocket_classifier_fit_save_load(synthetic_pocket_data):
         loaded_clf = PocketClassifier.load(tmpdir)
         loaded_scores = loaded_clf.predict_score(X)
         np.testing.assert_allclose(scores, loaded_scores)
+
+
+def test_pocket_classifier_regularized_backends(synthetic_pocket_data):
+    df, feature_cols = synthetic_pocket_data
+    X = df[feature_cols].values
+    y = df["Label_label"].values
+
+    for backend in ("lightgbm", "xgboost"):
+        cfg = ModelConfig(
+            model_type=backend,
+            n_estimators=10,
+            subsample=0.7,
+            colsample_bytree=0.7,
+            reg_lambda=2.0,
+            reg_alpha=0.1,
+            seed=42,
+        )
+        clf = PocketClassifier(config=cfg, feature_names=feature_cols)
+        clf.fit(X, y)
+        scores = clf.predict_score(X)
+        assert len(scores) == len(df)
+        assert np.all((scores >= 0.0) & (scores <= 1.0))
+
+
+def test_pocket_classifier_autogluon_handling():
+    cfg = ModelConfig(model_type="autogluon")
+    try:
+        clf = PocketClassifier(config=cfg)
+        assert clf.model_backend == "autogluon"
+    except ImportError as e:
+        assert "AutoGluon" in str(e)
+
+
+def test_train_pipeline_mean_fold_metrics(synthetic_pocket_data, tmp_path):
+    from allopockets.ml.train import train_pipeline
+
+    df, _ = synthetic_pocket_data
+    data_file = tmp_path / "cv_data.parquet"
+    df.to_parquet(data_file)
+    out_dir = tmp_path / "cv_model_out"
+
+    res = train_pipeline(
+        data_path=data_file,
+        model_type="hist_gradient_boost",
+        n_splits=3,
+        n_estimators=10,
+        subsample=0.8,
+        colsample=0.8,
+        reg_lambda=1.5,
+        output_dir=str(out_dir),
+    )
+
+    assert "mean_fold_classification_metrics" in res
+    assert "std_fold_classification_metrics" in res
+    assert "pr_auc" in res["mean_fold_classification_metrics"]
+    assert "roc_auc" in res["mean_fold_classification_metrics"]
+    assert "mcc" in res["mean_fold_classification_metrics"]
+    assert not np.isnan(res["mean_fold_classification_metrics"]["pr_auc"])

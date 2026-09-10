@@ -1,0 +1,24 @@
+feature,importance
+Pockets_nres,0.24152198
+FPocket_Number of apolar alpha sphere,0.110335484
+FPocket_Polarity Score,0.085610844
+FPocket_Pocket Score,0.06045525
+FPocket_Charge Score,0.047946155
+FPocket_Total SASA,0.03726158
+FPocket_Hydrophobicity Score,0.036854774
+FPocket_Proportion of polar atoms,0.035422426
+FPocket_Alpha sphere density,0.034997024
+FPocket_Proportion of apolar alpha sphere,0.031134501
+FPocket_Mean alpha-sphere radius,0.029021678
+FPocket_Pocket volume (Monte Carlo),0.026021848
+FPocket_Amino Acid based volume Score,0.02594361
+FPocket_Cent. of mass - Alpha Sphere max dist,0.025638606
+FPocket_Mean B-factor of pocket residues,0.024478775
+FPocket_Apolar SASA,0.023156893
+FPocket_Number of alpha spheres,0.022042762
+FPocket_Local hydrophobic density Score,0.020417076
+FPocket_Mean alpha-sphere Solvent Acc.,0.019889222
+FPocket_Polar SASA,0.018822428
+FPocket_Flexibility,0.018463664
+FPocket_Drug Score,0.014755041
+FPocket_Pocket volume (convex hull),0.009808328

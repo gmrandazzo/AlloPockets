@@ -43,6 +43,10 @@ def train_pipeline(
     learning_rate: float = 0.03,
     n_estimators: int = 300,
     max_depth: int = 6,
+    subsample: float = 0.8,
+    colsample: float = 0.8,
+    reg_lambda: float = 1.0,
+    reg_alpha: float = 0.0,
     test_data_path: Optional[Union[str, Path]] = None,
 ) -> Dict:
     """
@@ -98,6 +102,10 @@ def train_pipeline(
         n_estimators=n_estimators,
         learning_rate=learning_rate,
         max_depth=max_depth,
+        subsample=subsample,
+        colsample_bytree=colsample,
+        reg_lambda=reg_lambda,
+        reg_alpha=reg_alpha,
         seed=seed,
     )
 
@@ -126,7 +134,28 @@ def train_pipeline(
             f"Fold {fold_idx}/{n_splits} - MCC: {metrics['mcc']:.4f}, ROC-AUC: {metrics['roc_auc']:.4f}, PR-AUC: {metrics['pr_auc']:.4f}"
         )
 
-    # Overall out-of-fold metrics
+    # Compute mean and standard deviation across folds to prevent calibration shift artifacts
+    mean_fold_metrics: Dict[str, float] = {}
+    std_fold_metrics: Dict[str, float] = {}
+    metric_keys = (
+        "mcc",
+        "roc_auc",
+        "pr_auc",
+        "f1",
+        "precision",
+        "recall",
+        "accuracy",
+        "balanced_accuracy",
+    )
+    for k in metric_keys:
+        vals = [
+            float(m[k]) for m in fold_metrics if k in m and m[k] is not None and not np.isnan(m[k])
+        ]
+        if vals:
+            mean_fold_metrics[k] = float(np.mean(vals))
+            std_fold_metrics[k] = float(np.std(vals))
+
+    # Overall out-of-fold metrics (pooled)
     oof_metrics = compute_classification_metrics(df[target_col].values, oof_probs)
 
     # Top-K Retrieval on out-of-fold predictions
@@ -141,6 +170,8 @@ def train_pipeline(
         "model_type": model_type,
         "n_samples": len(df),
         "n_features": len(feature_names),
+        "mean_fold_classification_metrics": mean_fold_metrics,
+        "std_fold_classification_metrics": std_fold_metrics,
         "oof_classification_metrics": oof_metrics,
         "oof_topk_retrieval": retrieval_metrics,
         "fold_metrics": fold_metrics,
@@ -192,9 +223,14 @@ def train_pipeline(
     with open(out_dir / "metrics.json", "w") as f:
         json.dump(summary, f, indent=2)
 
-    logger.info("=== Overall CV Results ===")
+    logger.info("=== Cross-Validation Results ===")
     logger.info(
-        f"MCC: {oof_metrics['mcc']:.4f} | ROC-AUC: {oof_metrics['roc_auc']:.4f} | PR-AUC: {oof_metrics['pr_auc']:.4f}"
+        f"Mean Fold CV -> MCC: {mean_fold_metrics.get('mcc', 0.0):.4f} +/- {std_fold_metrics.get('mcc', 0.0):.4f} | "
+        f"ROC-AUC: {mean_fold_metrics.get('roc_auc', 0.0):.4f} +/- {std_fold_metrics.get('roc_auc', 0.0):.4f} | "
+        f"PR-AUC: {mean_fold_metrics.get('pr_auc', 0.0):.4f} +/- {std_fold_metrics.get('pr_auc', 0.0):.4f}"
+    )
+    logger.info(
+        f"Pooled OOF   -> MCC: {oof_metrics['mcc']:.4f} | ROC-AUC: {oof_metrics['roc_auc']:.4f} | PR-AUC: {oof_metrics['pr_auc']:.4f}"
     )
     logger.info(
         f"Top-1 Accuracy: {retrieval_metrics['top_1_accuracy']*100:.1f}% | Top-3 Accuracy: {retrieval_metrics['top_3_accuracy']*100:.1f}%"

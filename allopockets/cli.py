@@ -115,7 +115,8 @@ def prepare_data_cli(db_path, outdir, limit, pdb_file, threshold, workers, outpu
     "--model",
     "model_type",
     default="hist_gradient_boost",
-    type=click.Choice(["hist_gradient_boost", "lightgbm", "xgboost"]),
+    type=click.Choice(["hist_gradient_boost", "lightgbm", "xgboost", "autogluon"]),
+    help="Model architecture: hist_gradient_boost, lightgbm, xgboost, or autogluon",
 )
 @click.option("--seed", default=42, type=int, help="Random seed for reproducibility (default: 42)")
 @click.option(
@@ -132,6 +133,26 @@ def prepare_data_cli(db_path, outdir, limit, pdb_file, threshold, workers, outpu
 )
 @click.option("--max-depth", default=6, type=int, help="Maximum tree depth (default: 6)")
 @click.option(
+    "--subsample",
+    default=0.8,
+    type=float,
+    help="Row subsampling ratio per tree (default: 0.8)",
+)
+@click.option(
+    "--colsample",
+    "--colsample-bytree",
+    "colsample",
+    default=0.8,
+    type=float,
+    help="Feature subsampling ratio per tree (default: 0.8)",
+)
+@click.option(
+    "--reg-lambda",
+    default=1.0,
+    type=float,
+    help="L2 regularization strength (default: 1.0)",
+)
+@click.option(
     "--outdir", default="models/lgbm_pocket_classifier", help="Directory to save trained model"
 )
 @click.option(
@@ -141,22 +162,39 @@ def prepare_data_cli(db_path, outdir, limit, pdb_file, threshold, workers, outpu
     help="Path to independent held-out test dataset (.parquet, .pkl, or .csv)",
 )
 def train_cli(
-    data_path, model_type, seed, splits, lr, n_estimators, max_depth, outdir, test_data_path
+    data_path,
+    model_type,
+    seed,
+    splits,
+    lr,
+    n_estimators,
+    max_depth,
+    subsample,
+    colsample,
+    reg_lambda,
+    outdir,
+    test_data_path,
 ):
     """Train reproducible Gradient Boost pocket classifier with Grouped Stratified CV."""
     from allopockets.ml.train import train_pipeline
 
-    train_pipeline(
-        data_path=data_path,
-        model_type=model_type,
-        seed=seed,
-        n_splits=splits,
-        output_dir=outdir,
-        learning_rate=lr,
-        n_estimators=n_estimators,
-        max_depth=max_depth,
-        test_data_path=test_data_path,
-    )
+    try:
+        train_pipeline(
+            data_path=data_path,
+            model_type=model_type,
+            seed=seed,
+            n_splits=splits,
+            output_dir=outdir,
+            learning_rate=lr,
+            n_estimators=n_estimators,
+            max_depth=max_depth,
+            subsample=subsample,
+            colsample=colsample,
+            reg_lambda=reg_lambda,
+            test_data_path=test_data_path,
+        )
+    except ImportError as e:
+        raise click.ClickException(str(e))
 
 
 @click.command("inspect-3d")

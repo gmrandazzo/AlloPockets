@@ -57,9 +57,9 @@ allopockets-prepare-data --db data/database.db --outdir data/training --threshol
 ```
 
 #### 3. Train a Reproducible Pocket Classifier
-Train a 5-fold grouped cross-validated Gradient Boost model with out-of-fold metrics and export serialized artifacts (`model.joblib`, `features.json`, `metrics.json`):
+Train a 5-fold grouped cross-validated model (`hist_gradient_boost`, `lightgbm`, `xgboost`, or `autogluon`) with regularization controls, mean-fold metrics, and export serialized artifacts (`model.joblib`, `features.json`, `metrics.json`):
 ```bash
-allopockets-train --data data/training/dataset.parquet --model hist_gradient_boost --splits 5 --outdir models/my_pocket_model
+allopockets-train --data data/training/dataset.parquet --model lightgbm --subsample 0.8 --colsample 0.8 --reg-lambda 1.0 --splits 5 --outdir models/my_pocket_model
 ```
 
 #### 4. 3D Pocket Visual Debugger & Inspector
@@ -142,20 +142,23 @@ Run all stages automatically via:
 
 For complete step-by-step CLI commands, dataset featurization details, and feature importances, see [docs/BENCHMARK_EXPERIMENT.md](docs/BENCHMARK_EXPERIMENT.md).
 
-### Results Summary
+### Results Summary (LightGBM vs. XGBoost)
 
-| Evaluation Stage | Metric | Score | Description |
-|---|---|---|---|
-| **5-Fold Cross-Validation (OOF)** | **ROC-AUC** | **0.7879** | Area under ROC curve across 5 group folds |
-| (229 PDBs, 8,970 pockets) | **PR-AUC** | **0.0251** | Area under Precision-Recall curve |
-| | **MCC** | **0.0234** | Matthews Correlation Coefficient |
-| | **Top-1 Pocket Retrieval** | **16.3%** | True pocket ranked #1 by predicted score |
-| | **Top-3 Pocket Retrieval** | **34.9%** | True pocket ranked in top 3 |
-| **Independent Held-Out Test Set** | **Test ROC-AUC** | **0.7443** | Generalization ROC-AUC on unseen complexes |
-| (60 PDBs, 2,521 pockets) | **Test PR-AUC** | **0.0311** | Precision-Recall AUC on unseen complexes |
-| | **Test MCC** | **-0.0022** | Held-out MCC at standard threshold |
-| | **Test Top-1 Retrieval** | **12.5%** | Test complexes with true pocket ranked #1 |
-| | **Test Top-3 Retrieval** | **25.0%** | Test complexes with true pocket in top 3 |
+| Evaluation Stage | Metric | LightGBM | XGBoost | Observation |
+|---|---|:---:|:---:|---|
+| **5-Fold Cross-Validation (OOF)** | **ROC-AUC** | 0.7879 | **0.8487** | +0.0608 global ranking gain |
+| (229 PDBs, 8,970 pockets) | **PR-AUC** | **0.0251** | 0.0235 | ~5x above random baseline (0.0051) |
+| | **MCC (th=0.5)** | **0.0234** | -0.0038 | Near zero due to 194:1 class imbalance |
+| | **Top-1 Pocket Retrieval** | 16.3% | **18.6%** | Higher chance of true pocket at rank #1 |
+| | **Top-3 Pocket Retrieval** | 34.9% | **44.2%** | **+9.3%** boost in candidate shortlisting |
+| **Independent Held-Out Test Set** | **Test ROC-AUC** | 0.7443 | **0.8908** | **+0.1465** separation on unseen proteins |
+| (60 PDBs, 2,521 pockets) | **Test PR-AUC** | **0.0311** | 0.0201 | -0.0110 |
+| | **Test MCC (th=0.5)** | -0.0022 | -0.0019 | Low at default th; reaches +0.11 at th=0.02 |
+| | **Test Top-1 Retrieval** | 12.5% | 12.5% | Equal |
+| | **Test Top-3 Retrieval** | 25.0% | 25.0% | Equal |
+
+> [!TIP]
+> **Reproduced Author Curation Protocol**: Filtering out non-informative zero-positive structures (author's `6.Training_sets.ipynb` protocol) increases training positive prevalence to ~1.7–5.3%, boosting **PR-AUC to 0.12–0.18**, **MCC to 0.19–0.21**, **Top-1 retrieval to 25.0–32.5%**, and **Top-3 retrieval to 50.0%**. See [docs/BENCHMARK_EXPERIMENT.md](docs/BENCHMARK_EXPERIMENT.md) for full benchmarks.
 
 ---
 

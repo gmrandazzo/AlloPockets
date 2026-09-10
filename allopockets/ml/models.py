@@ -34,8 +34,8 @@ logger = logging.getLogger(__name__)
 
 class PocketClassifier:
     """
-    Transparent, reproducible Gradient Boost classifier for pocket ranking.
-    Supports scikit-learn HistGradientBoosting, LightGBM, and XGBoost.
+    Transparent, reproducible Gradient Boost and AutoML classifier for pocket ranking.
+    Supports scikit-learn HistGradientBoosting, LightGBM, XGBoost, and AutoGluon.
     """
 
     def __init__(
@@ -51,6 +51,20 @@ class PocketClassifier:
         mtype = self.config.model_type.lower()
         seed = self.config.seed
 
+        if mtype in ("autogluon", "ag"):
+            try:
+                import autogluon.tabular  # noqa: F401
+
+                self.model_backend = "autogluon"
+                self.model = None
+                return
+            except (ImportError, ModuleNotFoundError) as exc:
+                raise ImportError(
+                    "AutoGluon is not installed or incompatible with the current environment. "
+                    "Note: AutoGluon currently requires Python <= 3.11. To run AutoGluon training, "
+                    "please use a Python 3.10/3.11 environment with 'pip install autogluon.tabular'."
+                ) from exc
+
         if mtype in ("lightgbm", "lgb"):
             try:
                 import lightgbm as lgb
@@ -62,7 +76,10 @@ class PocketClassifier:
                     num_leaves=self.config.num_leaves,
                     min_child_samples=self.config.min_child_samples,
                     subsample=self.config.subsample,
+                    subsample_freq=1 if self.config.subsample < 1.0 else 0,
                     colsample_bytree=self.config.colsample_bytree,
+                    reg_alpha=self.config.reg_alpha,
+                    reg_lambda=self.config.reg_lambda,
                     scale_pos_weight=self.config.scale_pos_weight or 1.0,
                     random_state=seed,
                     n_jobs=self.config.n_jobs,
@@ -83,6 +100,10 @@ class PocketClassifier:
                     n_estimators=self.config.n_estimators,
                     learning_rate=self.config.learning_rate,
                     max_depth=self.config.max_depth,
+                    subsample=self.config.subsample,
+                    colsample_bytree=self.config.colsample_bytree,
+                    reg_alpha=self.config.reg_alpha,
+                    reg_lambda=self.config.reg_lambda,
                     scale_pos_weight=self.config.scale_pos_weight or 1.0,
                     random_state=seed,
                     n_jobs=self.config.n_jobs,
@@ -109,6 +130,7 @@ class PocketClassifier:
             max_depth=self.config.max_depth,
             max_leaf_nodes=self.config.num_leaves,
             min_samples_leaf=self.config.min_child_samples,
+            l2_regularization=self.config.reg_lambda,
             class_weight=class_weight,
             random_state=seed,
         )
@@ -136,6 +158,25 @@ class PocketClassifier:
 
         y_arr = np.asarray(y, dtype=int)
 
+        if self.model_backend == "autogluon":
+            from autogluon.tabular import TabularPredictor
+            import tempfile
+
+            df_train = pd.DataFrame(X_arr, columns=self.feature_names)
+            df_train["_target"] = y_arr
+            predictor_path = tempfile.mkdtemp(prefix="autogluon_model_")
+            self.model = TabularPredictor(
+                label="_target",
+                eval_metric="roc_auc",
+                path=predictor_path,
+                verbosity=0,
+            ).fit(
+                train_data=df_train,
+                presets="medium_quality",
+                time_limit=300,
+            )
+            return self
+
         # Handle class imbalance if not set
         if self.config.scale_pos_weight is None and self.model_backend in ("lightgbm", "xgboost"):
             n_pos = np.sum(y_arr == 1)
@@ -151,11 +192,24 @@ class PocketClassifier:
         return self
 
     def predict(self, X: Union[pd.DataFrame, np.ndarray]) -> np.ndarray:
+        if self.model_backend == "autogluon":
+            df_in = pd.DataFrame(self._prepare_input(X), columns=self.feature_names)
+            preds = self.model.predict(df_in)
+            return np.asarray(preds, dtype=int)
         X_arr = self._prepare_input(X)
         return self.model.predict(X_arr)
 
     def predict_proba(self, X: Union[pd.DataFrame, np.ndarray]) -> np.ndarray:
         """Return probabilities of shape (N, 2)."""
+        if self.model_backend == "autogluon":
+            df_in = pd.DataFrame(self._prepare_input(X), columns=self.feature_names)
+            proba_df = self.model.predict_proba(df_in)
+            if isinstance(proba_df, pd.DataFrame):
+                if 1 in proba_df.columns:
+                    p1 = proba_df[1].values
+                    p0 = proba_df[0].values if 0 in proba_df.columns else 1.0 - p1
+                    return np.column_stack([p0, p1])
+            return np.asarray(proba_df)
         X_arr = self._prepare_input(X)
         return self.model.predict_proba(X_arr)
 
@@ -177,6 +231,24 @@ class PocketClassifier:
         """Export trained model and metadata."""
         out = Path(output_dir)
         out.mkdir(parents=True, exist_ok=True)
+
+        if self.model_backend == "autogluon":
+            ag_dir = out / "autogluon_model"
+            if hasattr(self.model, "clone_for_deployment"):
+                self.model.clone_for_deployment(path=str(ag_dir))
+            else:
+                self.model.save(str(ag_dir))
+            with open(out / "features.json", "w") as f:
+                json.dump(self.feature_names, f, indent=2)
+            metadata = {
+                "backend": self.model_backend,
+                "n_features": len(self.feature_names),
+                "config": self.config.__dict__,
+            }
+            with open(out / "metadata.json", "w") as f:
+                json.dump(metadata, f, indent=2)
+            logger.info(f"Saved AutoGluon model to {out}")
+            return
 
         joblib.dump(self.model, out / "model.joblib")
         with open(out / "features.json", "w") as f:
@@ -208,6 +280,27 @@ class PocketClassifier:
     def load(cls, model_dir: Union[str, Path]) -> "PocketClassifier":
         """Load trained model and registered features."""
         model_dir = Path(model_dir)
+        meta_file = model_dir / "metadata.json"
+
+        if meta_file.exists():
+            with open(meta_file, "r") as f:
+                meta = json.load(f)
+            if meta.get("backend") == "autogluon":
+                try:
+                    from autogluon.tabular import TabularPredictor
+                except (ImportError, ModuleNotFoundError) as exc:
+                    raise ImportError(
+                        "AutoGluon is not installed or incompatible with the current environment. "
+                        "Cannot load AutoGluon model."
+                    ) from exc
+                feat_file = model_dir / "features.json"
+                with open(feat_file, "r") as f:
+                    feature_names = json.load(f)
+                classifier = cls(feature_names=feature_names)
+                classifier.model_backend = "autogluon"
+                classifier.model = TabularPredictor.load(str(model_dir / "autogluon_model"))
+                return classifier
+
         model_file = model_dir / "model.joblib"
         feat_file = model_dir / "features.json"
 
@@ -219,8 +312,8 @@ class PocketClassifier:
 
         classifier = cls(feature_names=feature_names)
         classifier.model = joblib.load(model_file)
-        if (model_dir / "metadata.json").exists():
-            with open(model_dir / "metadata.json", "r") as f:
+        if meta_file.exists():
+            with open(meta_file, "r") as f:
                 meta = json.load(f)
                 classifier.model_backend = meta.get("backend", "unknown")
         return classifier

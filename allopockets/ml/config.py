@@ -226,7 +226,9 @@ DEFAULT_FEATURE_NAMES = [
 
 @dataclass
 class ModelConfig:
-    model_type: str = "hist_gradient_boost"  # "hist_gradient_boost", "lightgbm", "xgboost"
+    model_type: str = (
+        "hist_gradient_boost"  # "hist_gradient_boost", "lightgbm", "xgboost", "autogluon"
+    )
     n_estimators: int = 300
     learning_rate: float = 0.03
     max_depth: int = 6
@@ -234,6 +236,8 @@ class ModelConfig:
     min_child_samples: int = 20
     subsample: float = 0.8
     colsample_bytree: float = 0.8
+    reg_lambda: float = 1.0
+    reg_alpha: float = 0.0
     scale_pos_weight: Optional[float] = None  # None = compute automatically
     seed: int = 42
     n_jobs: int = -1
