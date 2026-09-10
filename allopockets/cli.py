@@ -153,6 +153,12 @@ def prepare_data_cli(db_path, outdir, limit, pdb_file, threshold, workers, outpu
     help="L2 regularization strength (default: 1.0)",
 )
 @click.option(
+    "--time-limit",
+    default=None,
+    type=int,
+    help="Time limit in seconds per fit for AutoML backends (e.g. autogluon)",
+)
+@click.option(
     "--outdir", default="models/lgbm_pocket_classifier", help="Directory to save trained model"
 )
 @click.option(
@@ -172,6 +178,7 @@ def train_cli(
     subsample,
     colsample,
     reg_lambda,
+    time_limit,
     outdir,
     test_data_path,
 ):
@@ -191,6 +198,7 @@ def train_cli(
             subsample=subsample,
             colsample=colsample,
             reg_lambda=reg_lambda,
+            time_limit=time_limit,
             test_data_path=test_data_path,
         )
     except ImportError as e:

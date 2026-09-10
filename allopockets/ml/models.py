@@ -165,6 +165,7 @@ class PocketClassifier:
             df_train = pd.DataFrame(X_arr, columns=self.feature_names)
             df_train["_target"] = y_arr
             predictor_path = tempfile.mkdtemp(prefix="autogluon_model_")
+            time_limit = self.config.time_limit if self.config.time_limit is not None else 60
             self.model = TabularPredictor(
                 label="_target",
                 eval_metric="roc_auc",
@@ -173,7 +174,7 @@ class PocketClassifier:
             ).fit(
                 train_data=df_train,
                 presets="medium_quality",
-                time_limit=300,
+                time_limit=time_limit,
             )
             return self
 

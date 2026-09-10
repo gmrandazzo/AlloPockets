@@ -241,6 +241,7 @@ class ModelConfig:
     scale_pos_weight: Optional[float] = None  # None = compute automatically
     seed: int = 42
     n_jobs: int = -1
+    time_limit: Optional[int] = None
 
 
 @dataclass

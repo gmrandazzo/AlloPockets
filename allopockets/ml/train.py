@@ -47,6 +47,7 @@ def train_pipeline(
     colsample: float = 0.8,
     reg_lambda: float = 1.0,
     reg_alpha: float = 0.0,
+    time_limit: Optional[int] = None,
     test_data_path: Optional[Union[str, Path]] = None,
 ) -> Dict:
     """
@@ -106,6 +107,7 @@ def train_pipeline(
         colsample_bytree=colsample,
         reg_lambda=reg_lambda,
         reg_alpha=reg_alpha,
+        time_limit=time_limit,
         seed=seed,
     )
 

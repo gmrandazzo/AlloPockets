@@ -1,0 +1,113 @@
+{
+  "model_type": "autogluon",
+  "n_samples": 2566,
+  "n_features": 23,
+  "mean_fold_classification_metrics": {
+    "mcc": 0.0,
+    "roc_auc": 0.8551811037777858,
+    "pr_auc": 0.13986500668275456,
+    "f1": 0.0,
+    "balanced_accuracy": 0.5
+  },
+  "std_fold_classification_metrics": {
+    "mcc": 0.0,
+    "roc_auc": 0.06708304405727346,
+    "pr_auc": 0.06426093733266275,
+    "f1": 0.0,
+    "balanced_accuracy": 0.0
+  },
+  "oof_classification_metrics": {
+    "mcc": 0.0,
+    "f1": 0.0,
+    "balanced_accuracy": 0.5,
+    "roc_auc": 0.8628939339472206,
+    "pr_auc": 0.10220534560541797,
+    "tp": 0,
+    "fp": 0,
+    "tn": 2523,
+    "fn": 43
+  },
+  "oof_topk_retrieval": {
+    "evaluated_pdbs": 40,
+    "top_1_accuracy": 0.175,
+    "top_3_accuracy": 0.425,
+    "top_5_accuracy": 0.575
+  },
+  "fold_metrics": [
+    {
+      "mcc": 0.0,
+      "f1": 0.0,
+      "balanced_accuracy": 0.5,
+      "roc_auc": 0.740691489361702,
+      "pr_auc": 0.04994389817487067,
+      "tp": 0,
+      "fp": 0,
+      "tn": 564,
+      "fn": 8
+    },
+    {
+      "mcc": 0.0,
+      "f1": 0.0,
+      "balanced_accuracy": 0.5,
+      "roc_auc": 0.9202562403357631,
+      "pr_auc": 0.2508327701523636,
+      "tp": 0,
+      "fp": 0,
+      "tn": 503,
+      "fn": 9
+    },
+    {
+      "mcc": 0.0,
+      "f1": 0.0,
+      "balanced_accuracy": 0.5,
+      "roc_auc": 0.9251912045889101,
+      "pr_auc": 0.12484823580485839,
+      "tp": 0,
+      "fp": 0,
+      "tn": 523,
+      "fn": 8
+    },
+    {
+      "mcc": 0.0,
+      "f1": 0.0,
+      "balanced_accuracy": 0.5,
+      "roc_auc": 0.8401649909770559,
+      "pr_auc": 0.13543463343501017,
+      "tp": 0,
+      "fp": 0,
+      "tn": 431,
+      "fn": 9
+    },
+    {
+      "mcc": 0.0,
+      "f1": 0.0,
+      "balanced_accuracy": 0.5,
+      "roc_auc": 0.849601593625498,
+      "pr_auc": 0.13826549584666997,
+      "tp": 0,
+      "fp": 0,
+      "tn": 502,
+      "fn": 9
+    }
+  ],
+  "test_metrics": {
+    "n_samples": 722,
+    "classification_metrics": {
+      "mcc": -0.003942105612637585,
+      "f1": 0.0,
+      "balanced_accuracy": 0.4992997198879552,
+      "roc_auc": 0.9494922969187676,
+      "pr_auc": 0.16828029328029329,
+      "tp": 0,
+      "fp": 1,
+      "tn": 713,
+      "fn": 8
+    },
+    "topk_retrieval": {
+      "evaluated_pdbs": 8,
+      "top_1_accuracy": 0.0,
+      "top_3_accuracy": 0.75,
+      "top_5_accuracy": 0.75
+    }
+  }
+}
