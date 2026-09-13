@@ -135,12 +135,25 @@ html = generate_3d_pocket_html(
 AlloPockets includes a reproducible full-benchmark training and evaluation pipeline comparing 229 train protein complexes against 60 independent held-out test complexes.
 
 ### Run the Experiment
-Run all stages automatically via:
+Run all stages of the baseline experiment automatically via:
 ```bash
 ./scripts/run_full_training_experiment.sh
 ```
 
-For complete step-by-step CLI commands, dataset featurization details, and feature importances, see [docs/BENCHMARK_EXPERIMENT.md](docs/BENCHMARK_EXPERIMENT.md).
+### Reproduce All 3 Feature Generations (Gen 1, Gen 2, Gen 3)
+To reproduce and evaluate the multi-generation benchmark:
+```bash
+# Fast mode (< 1 min): train and evaluate LightGBM & XGBoost across Gen 1, Gen 2, and Gen 3
+./scripts/reproduce_multigen_benchmark.sh
+
+# Report-only mode: instantaneously print the Grand Master comparison matrix and takeaways
+./scripts/reproduce_multigen_benchmark.sh --report-only
+
+# Full extraction mode: re-extract Route 1 multi-modal features from raw CIF structures
+./scripts/reproduce_multigen_benchmark.sh --reextract
+```
+
+For complete step-by-step CLI commands, dataset featurization details, feature importances, and the Grand Master comparison matrix, see [docs/BENCHMARK_EXPERIMENT.md](docs/BENCHMARK_EXPERIMENT.md).
 
 ### Results Summary: Baselines, Regularized Models & AutoGluon
 
@@ -190,7 +203,11 @@ AlloPockets/
 │   ├── training_data/       # Clustering, minimal structures & feature notebooks
 │   └── models/              # Model ablation, benchmarking & comparison notebooks
 ├── scripts/                 # Automation & utility scripts
-│   └── run_full_training_experiment.sh # End-to-end benchmark script
+│   ├── reproduce_multigen_benchmark.sh # Master multi-generation reproduction runner
+│   ├── run_full_training_experiment.sh # End-to-end baseline benchmark script (23 feats)
+│   ├── extract_route1_features.py      # Route 1 parallel multi-modal feature extractor (155 feats)
+│   ├── generate_route2_features.py     # Route 2 186-feature dataset generator and trainer
+│   └── train_and_evaluate_route1.py    # Route 1 training and evaluation runner
 ├── tests/                   # Pytest test suite
 ├── predict.py               # Root backward-compatible wrapper
 ├── pyproject.toml           # Build system, dependencies, and configuration

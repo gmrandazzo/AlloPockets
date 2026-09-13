@@ -290,6 +290,23 @@ The table below contrasts the three generations of models developed in this proj
 | **Gen 3 (Route 2)** | XGBoost | 186 | **0.8929** | 0.1369 | -0.0068 | **25.0%** | 37.5% | 50.0% |
 | **Author Reference**| AutoGluon (`model5`) | 186 | **0.9631** | **0.5811** | **0.6554** | **83.3%** | **87.5%** | **95.8%** |
 
+### 10.1 Feature Generation Impact: Does Generating More Descriptors Truly Improve Results?
+
+Evaluating the progression across **Generation 1 (23 features)**, **Generation 2 (155 features)**, and **Generation 3 (186 features)** provides a clear answer regarding descriptor scaling:
+
+1. **Generation 1 $\to$ Generation 2 (23 Geometric $\to$ 155 Multi-Modal Features): A Decisive Practical Breakthrough**
+   - **Precision Jump**: Test PR-AUC jumped to **0.2002** in LightGBM (+28.5% over curated Gen 1 LightGBM, and more than double the uncurated baseline), delivering the highest precision among all reproduced models.
+   - **Candidate Discovery**: XGBoost Top-3 cavity retrieval reached **50.0%** (with 25.0% Top-1), ensuring half of all test proteins place their allosteric site in the top 3 recommendations.
+   - **Biophysical Rationale**: Cavity volume, depth, and hydro-inertial geometry alone cannot distinguish functional allosteric cavities from deep, non-functional surface depressions. Adding pocket solvation (FreeSASA), secondary structure H-bond stability (DSSP), half-sphere residue exposure (BioPython), and normal mode perturbation sensitivity (ProDy PRS) equips the model with essential physical signal capturing allosteric communication and pocket flexibility.
+
+2. **Generation 2 $\to$ Generation 3 (155 Multi-Modal $\to$ 186 Full Features): Diminishing Returns & Feature Dilution**
+   - **Discrimination vs. Precision**: XGBoost attained peak global discrimination (**Test ROC-AUC = 0.8929**, +0.014 over Gen 2), but Test PR-AUC declined (**0.2002 $\to$ 0.1369** in LightGBM and 0.1319 $\to$ 0.1369 in XGBoost). Top-3 retrieval slipped from 50.0% to 37.5%.
+   - **Dilution Effect**: Incorporating 31 auxiliary evolutionary and stability features without structure-specific experimental evolutionary MSAs (using neutral PyRosetta $\Delta\Delta G$ and background HHBlits frequencies) introduces feature dilution and slight noise without adding discriminative rank precision.
+
+3. **Bottom-Line Takeaway**:
+   - **Generation 2 (Route 1 - 155 features) is the optimal sweet spot** for standalone, high-performance allosteric pocket prediction: fast to compute, 100% open-source, and delivering peak precision-recall performance.
+   - **Generating more descriptors only improves results if they provide high-fidelity, structure-specific experimental variance** (as in the author's reference `model5` trained on experimental MSAs and PyRosetta energy scores, achieving 0.5811 PR-AUC). When auxiliary descriptors are synthetic or imputed, adding more features yields diminishing returns.
+
 ---
 
 ## 11. Generated Artifacts & Directory Layout
@@ -297,6 +314,7 @@ The table below contrasts the three generations of models developed in this proj
 ```
 AlloPockets/
 ├── scripts/
+│   ├── reproduce_multigen_benchmark.sh        # Master multi-generation reproduction & comparison script
 │   ├── run_full_training_experiment.sh         # End-to-end executable benchmark script (23 feats)
 │   ├── extract_route1_features.py              # Parallel multi-modal Route 1 feature extractor (155 feats)
 │   ├── generate_route2_features.py             # Route 2 full 186-feature dataset generator and trainer

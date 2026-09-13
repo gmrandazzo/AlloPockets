@@ -169,6 +169,12 @@ def main():
     logger.info(f"Loaded train ({len(train_df)} rows) and test ({len(test_df)} rows) with {len(feature_cols)} features.")
 
     all_results: Dict[str, Any] = {}
+    if os.path.exists(args.output_json):
+        try:
+            with open(args.output_json) as f:
+                all_results = json.load(f)
+        except Exception:
+            all_results = {}
 
     # 1. LightGBM
     logger.info("\n--- Training Regularized LightGBM on 155 Features ---")
