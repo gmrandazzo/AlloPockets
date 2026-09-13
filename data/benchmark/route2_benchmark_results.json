@@ -1,0 +1,74 @@
+{
+  "LightGBM": {
+    "oof": {
+      "mcc": 0.06418730433888833,
+      "f1": 0.06666666666666667,
+      "balanced_accuracy": 0.5202831623482566,
+      "roc_auc": 0.8216639474969812,
+      "pr_auc": 0.08957859680988736,
+      "tp": 2,
+      "fp": 15,
+      "tn": 2508,
+      "fn": 41
+    },
+    "oof_retrieval": {
+      "evaluated_pdbs": 40,
+      "top_1_accuracy": 0.125,
+      "top_3_accuracy": 0.325,
+      "top_5_accuracy": 0.525
+    },
+    "test": {
+      "mcc": -0.007900665249207782,
+      "f1": 0.0,
+      "balanced_accuracy": 0.49719887955182074,
+      "roc_auc": 0.8625700280112045,
+      "pr_auc": 0.11402788436934058,
+      "tp": 0,
+      "fp": 4,
+      "tn": 710,
+      "fn": 8
+    },
+    "test_retrieval": {
+      "evaluated_pdbs": 8,
+      "top_1_accuracy": 0.0,
+      "top_3_accuracy": 0.375,
+      "top_5_accuracy": 0.5
+    }
+  },
+  "XGBoost": {
+    "oof": {
+      "mcc": 0.08929134133695378,
+      "f1": 0.07547169811320754,
+      "balanced_accuracy": 0.5216703997640314,
+      "roc_auc": 0.8472287513019753,
+      "pr_auc": 0.11522363626447113,
+      "tp": 2,
+      "fp": 8,
+      "tn": 2515,
+      "fn": 41
+    },
+    "oof_retrieval": {
+      "evaluated_pdbs": 40,
+      "top_1_accuracy": 0.175,
+      "top_3_accuracy": 0.475,
+      "top_5_accuracy": 0.625
+    },
+    "test": {
+      "mcc": -0.0068374170368608106,
+      "f1": 0.0,
+      "balanced_accuracy": 0.49789915966386555,
+      "roc_auc": 0.8928571428571428,
+      "pr_auc": 0.1369138278990761,
+      "tp": 0,
+      "fp": 3,
+      "tn": 711,
+      "fn": 8
+    },
+    "test_retrieval": {
+      "evaluated_pdbs": 8,
+      "top_1_accuracy": 0.25,
+      "top_3_accuracy": 0.375,
+      "top_5_accuracy": 0.5
+    }
+  }
+}

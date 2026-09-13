@@ -1,0 +1,96 @@
+{
+  "LightGBM": {
+    "oof": {
+      "mcc": 0.07620987771683549,
+      "f1": 0.07142857142857142,
+      "balanced_accuracy": 0.521075869442985,
+      "roc_auc": 0.8343196084395652,
+      "pr_auc": 0.09836582100770348,
+      "tp": 2,
+      "fp": 11,
+      "tn": 2512,
+      "fn": 41
+    },
+    "oof_retrieval": {
+      "evaluated_pdbs": 40,
+      "top_1_accuracy": 0.15,
+      "top_3_accuracy": 0.3,
+      "top_5_accuracy": 0.525
+    },
+    "test": {
+      "mcc": 0.17035809443604283,
+      "f1": 0.16666666666666666,
+      "balanced_accuracy": 0.5603991596638656,
+      "roc_auc": 0.8657212885154062,
+      "pr_auc": 0.20022329155992521,
+      "tp": 1,
+      "fp": 3,
+      "tn": 711,
+      "fn": 7
+    },
+    "test_retrieval": {
+      "evaluated_pdbs": 8,
+      "top_1_accuracy": 0.125,
+      "top_3_accuracy": 0.375,
+      "top_5_accuracy": 0.5
+    }
+  },
+  "XGBoost": {
+    "oof": {
+      "mcc": 0.08929134133695378,
+      "f1": 0.07547169811320754,
+      "balanced_accuracy": 0.5216703997640314,
+      "roc_auc": 0.8378683553171289,
+      "pr_auc": 0.11389827146699001,
+      "tp": 2,
+      "fp": 8,
+      "tn": 2515,
+      "fn": 41
+    },
+    "oof_retrieval": {
+      "evaluated_pdbs": 40,
+      "top_1_accuracy": 0.175,
+      "top_3_accuracy": 0.475,
+      "top_5_accuracy": 0.625
+    },
+    "test": {
+      "mcc": -0.00557884939170482,
+      "f1": 0.0,
+      "balanced_accuracy": 0.49859943977591037,
+      "roc_auc": 0.8783263305322129,
+      "pr_auc": 0.13192208538209085,
+      "tp": 0,
+      "fp": 2,
+      "tn": 712,
+      "fn": 8
+    },
+    "test_retrieval": {
+      "evaluated_pdbs": 8,
+      "top_1_accuracy": 0.25,
+      "top_3_accuracy": 0.5,
+      "top_5_accuracy": 0.5
+    }
+  },
+  "AutoGluon": {
+    "roc_auc": 0.7548144257703082,
+    "pr_auc": 0.07228029834622407,
+    "mcc": 0.0,
+    "f1": 0.0,
+    "top_1_accuracy": 0.0,
+    "top_3_accuracy": 0.25,
+    "top_5_accuracy": 0.25,
+    "evaluated_pdbs": 8,
+    "best_model": "WeightedEnsemble_L2",
+    "model_names": [
+      "LightGBMXT",
+      "LightGBM",
+      "RandomForestGini",
+      "RandomForestEntr",
+      "ExtraTreesGini",
+      "ExtraTreesEntr",
+      "XGBoost",
+      "LightGBMLarge",
+      "WeightedEnsemble_L2"
+    ]
+  }
+}

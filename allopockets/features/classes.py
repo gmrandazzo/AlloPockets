@@ -32,6 +32,9 @@ from Bio import PDB  # conda Biopython 1.84
 # dssp can be installed in env avoiding compatibility issues with pyroseta with:
 ## wget https://conda.anaconda.org/conda-forge/linux-64/dssp-4.4.8-h629725b_0.conda
 ## conda install dssp-4.4.8-h629725b_0.conda
+import shutil
+from .aa_scales import get_residues_scales_df
+
 try:
     import melodia_py as melodia
 except ImportError:
@@ -42,14 +45,14 @@ from Bio.SeqUtils import seq1
 
 
 class BiopythonF:
-    dssp_path = "mkdssp-4.4.0-linux-x64"
+    dssp_path = shutil.which("mkdssp") or "mkdssp-4.4.0-linux-x64"
 
     def __init__(self, cif):
         self._cif = cif
 
     features = ["exposureCB", "exposureCN", "residue_depth"]
 
-    @property
+    @cached_property
     def struc(self):
         return PDB.MMCIFParser().get_structure(self._cif.entry_id.upper(), self._cif.filename)
 
@@ -93,11 +96,29 @@ class BiopythonF:
         return self._process_property_list(self._exposureCN().property_list, ["EXP_CN"])
 
     def _residue_depth(self):
-        return PDB.ResidueDepth(self.model)
+        try:
+            return PDB.ResidueDepth(self.model)
+        except Exception:
+            return None
 
     def residue_depth(self):
-        return self._process_property_list(
-            self._residue_depth().property_list, ["EXP_RD", "EXP_RD_CA"]
+        rd = self._residue_depth()
+        if rd is not None and hasattr(rd, "property_list"):
+            return self._process_property_list(
+                rd.property_list, ["EXP_RD", "EXP_RD_CA"]
+            )
+        return pd.DataFrame(
+            [
+                {
+                    "auth_asym_id": r.full_id[2],
+                    "auth_seq_id": str(r.full_id[3][1]),
+                    "pdbx_PDB_ins_code": r.full_id[3][2].replace(" ", "") or "?",
+                    "EXP_RD": float("nan"),
+                    "EXP_RD_CA": float("nan"),
+                }
+                for r in self.model.get_residues()
+                if r.id[0] == " "
+            ]
         )
 
     # Might fail because some residues are renamed during structure fixing
@@ -140,27 +161,33 @@ class BiopythonF:
         ).drop(["dssp index", "amino acid"], axis=1)
 
     def _melodia(self):
-        return pd.DataFrame(
-            [
-                {
-                    "auth_asym_id": full_id[2],
-                    "auth_seq_id": str(full_id[3][1]),
-                    "auth_comp_id": r.name,
-                    "pdbx_PDB_ins_code": full_id[3][2].replace(" ", "") or "?",
-                    "curvature": r.curvature,
-                    "torsion": r.torsion,
-                    "arc_len": r.arc_len,
-                    "writhing": r.writhing,
-                    "phi": r.phi,
-                    "psi": r.psi,
-                }
-                for c in melodia.geometry_dict_from_structure(self.struc).values()
-                for r in c.residues.values()
-                for full_id in [
-                    r.res_ann["full_id"],
-                ]
-            ]
-        )
+        records = []
+        struc = self.struc
+        geom = melodia.geometry_dict_from_structure(struc)
+        for chain_key, c in geom.items():
+            chain_id = chain_key.split(":")[-1]
+            if chain_id not in struc[0]:
+                continue
+            chain = struc[0][chain_id]
+            bio_residues = [r for r in chain.get_residues() if r.id[0] == " "]
+            for res_idx, r in c.residues.items():
+                if res_idx < len(bio_residues):
+                    bio_res = bio_residues[res_idx]
+                    records.append(
+                        {
+                            "auth_asym_id": chain_id,
+                            "auth_seq_id": str(bio_res.id[1]),
+                            "auth_comp_id": r.name,
+                            "pdbx_PDB_ins_code": bio_res.id[2].replace(" ", "") or "?",
+                            "curvature": r.curvature,
+                            "torsion": r.torsion,
+                            "arc_len": r.arc_len,
+                            "writhing": r.writhing,
+                            "phi": r.phi,
+                            "psi": r.psi,
+                        }
+                    )
+        return pd.DataFrame(records)
 
     def melodia(self):
         df = self._melodia()
@@ -226,61 +253,8 @@ class GrapheinF:
 
     features = ["graphein"]
 
-    @cached_property
-    def _graph(self):
-        extra_config = {
-            "verbose": False,
-            "node_metadata_functions": [
-                graphein.features.nodes.amino_acid.meiler_embedding,  # https://doi.org/10.1007/s008940100038
-                graphein.features.nodes.amino_acid.expasy_protein_scale,  # AAIndex https://web.expasy.org/protscale/
-            ],
-        }
-        config = graphein.config.ProteinGraphConfig(**extra_config)
-
-        # put biopandas pandaspdb column names and fix types
-        df = self._cif.atoms.reset_index().rename(
-            columns={
-                "index": "line_idx",
-                "group_PDB": "record_name",
-                "id": "atom_number",
-                "label_atom_id": "atom_name",
-                "label_alt_id": "alt_loc",
-                "auth_comp_id": "residue_name",
-                "auth_asym_id": "chain_id",
-                "auth_seq_id": "residue_number",
-                "pdbx_PDB_ins_code": "insertion",
-                "Cartn_x": "x_coord",
-                "Cartn_y": "y_coord",
-                "Cartn_z": "z_coord",
-                "B_iso_or_equiv": "b_factor",
-                "label_asym_id": "segment_id",
-                "type_symbol": "element_symbol",
-                "pdbx_formal_charge": "charge",
-            }
-        )
-        df[["atom_number", "residue_number", "line_idx"]] = df[
-            ["atom_number", "residue_number", "line_idx"]
-        ].astype(int)
-        df[["x_coord", "y_coord", "z_coord", "occupancy", "b_factor"]] = df[
-            ["x_coord", "y_coord", "z_coord", "occupancy", "b_factor"]
-        ].astype(float)
-
-        graph = graphein.graphs.construct_graph(config=config, path=self._cif.filename, df=df)
-        return graph
-
     def graphein(self):
-        return pd.DataFrame(
-            (
-                {
-                    "auth_asym_id": rd["chain_id"],
-                    "auth_seq_id": str(rd["residue_number"]),
-                    "pdbx_PDB_ins_code": r.split(":")[-2],
-                    **rd["meiler"],
-                    **rd["expasy"],
-                }
-                for r, rd in dict(self._graph.nodes(data=True)).items()
-            )
-        )
+        return get_residues_scales_df(self._cif.residues)
 
 
 # ## FreeSASA
@@ -463,10 +437,8 @@ class ProDyF:
     @cache
     def _anm(
         self,
-        n_modes="all",
+        n_modes=50,
         **kwargs,
-        # cutoff=15.0, gamma=1.0, sparse=False, kdtree=False, # buildHessian params
-        # n_modes="all", zeros=False, turbo=True, nproc=0 # calcModes params; n_modes is "all" wrt default, for the downstream methods
     ):
         anm = prody.ANM()
         anm.buildHessian(self._cas, **kwargs)
@@ -493,7 +465,7 @@ class ProDyF:
         )  # from showMeanMechStiff function
         return self._get_df("mechstiff", meanstiff)
 
-    def _rmsflucts(self, n_modes=None, **anm_kwargs):
+    def _rmsflucts(self, n_modes=20, **anm_kwargs):
         anm = self._anm(**anm_kwargs)
         return prody.calcRMSFlucts(anm if n_modes is None else anm[:n_modes])
 
@@ -503,19 +475,24 @@ class ProDyF:
     def _essa(
         self,
         enm="gnm",
+        lowmem=True,
+        n_modes=10,
         **kwargs,
-        # lig=None, dist=4.5, lowmem=False # setSystem params
-        # n_modes=10, enm='gnm', cutoff=None (10 for GNM, 15 for ANM) # scanResidues params #### probably this **kwargs will fail with extraneous kw arguments
     ):
         essa = prody.ESSA()
-        essa.setSystem(self._atoms, **kwargs)
-        # assert len(essa._ca) == len(self._cif.residues), "Not all CAs picked up by ESSA"
-        essa.scanResidues(enm=enm, **kwargs)
+        essa.setSystem(self._atoms, lowmem=lowmem, **kwargs)
+        essa.scanResidues(enm=enm, n_modes=n_modes)
         return essa
 
-    def essa(self, **kwargs):
-        essa = self._essa(**kwargs).getESSAZscores()
-        return self._get_df("essa", essa)
+    def essa(self, max_residues=1200, **kwargs):
+        if len(self._cas) > max_residues:
+            # Skip ESSA on large multimers to prevent O(N^3) pairwise distance bottleneck
+            return self._get_df("essa", np.full(len(self._res_df), np.nan))
+        try:
+            essa = self._essa(**kwargs).getESSAZscores()
+            return self._get_df("essa", essa)
+        except Exception:
+            return self._get_df("essa", np.full(len(self._res_df), np.nan))
 
 
 # ## HHBlits
@@ -696,38 +673,44 @@ class TransferEntropyF:
 
     def _Transfer_entropy(self, coordinate, N, cutoff, tau):
         with threadpool_limits(limits=2):
-            InvKirchhoff, CellAij, N, eig_Value = self._GNM(coordinate, N, cutoff)
-            TE = np.ones((N, N), dtype=complex)
-            for i in range(N):
-                for j in range(N):
-                    aEk = [CellAij[k][j][j] for k in range(0, N)]
-                    bEk = [CellAij[k][i][j] for k in range(0, N)]
-                    cEk = [CellAij[k][j][j] for k in range(0, N)]
-                    dEk = [CellAij[k][i][j] for k in range(0, N)]
-                    eEk = [CellAij[k][i][i] for k in range(0, N)]
-                    aEk = aEk * np.exp(-eig_Value * tau)
-                    bEk = bEk * np.exp(-eig_Value * tau)
-                    a = np.sum(cEk) ** 2 - np.sum(aEk) ** 2
-                    b = np.sum(eEk) * np.sum(cEk) ** 2
-                    c = 2 * (np.sum(dEk)) * np.sum(aEk) * np.sum(bEk)
-                    d = -(((np.sum(bEk) ** 2) + (np.sum(dEk) ** 2)) * (np.sum(cEk))) - (
-                        (np.sum(aEk) ** 2) * np.sum(eEk)
-                    )
-                    f = np.sum(cEk)
-                    g = (np.sum(eEk) * np.sum(cEk)) - (np.sum(dEk) ** 2)
-                    if i == j:
-                        TE[i][j] = 0
-                    else:
-                        TE[i][j] = (
-                            0.5 * np.log(a)
-                            - 0.5 * np.log(b + c + d)
-                            - 0.5 * np.log(f)
-                            + 0.5 * np.log(g)
-                        )
+            Kirchhoff = self._kirchhoff(coordinate, cutoff)
+            Vectors, Values, _ = np.linalg.svd(Kirchhoff)
+            sorted_indices = np.argsort(Values)
+            Values = Values[sorted_indices]
+            Vectors = Vectors[:, sorted_indices]
+
+            inv_vals = np.where(1 / Values < 1000, 1 / Values, 0.0)
+            exp_eig = np.exp(-Values * tau)
+
+            sum_d = (Vectors * inv_vals) @ Vectors.T
+            sum_b = (Vectors * (inv_vals * exp_eig)) @ Vectors.T
+            sum_c = np.diag(sum_d)
+            sum_a = np.diag(sum_b)
+
+            sum_c_j = sum_c[None, :]
+            sum_c_i = sum_c[:, None]
+            sum_a_j = sum_a[None, :]
+
+            a = sum_c_j**2 - sum_a_j**2
+            b = sum_c_i * (sum_c_j**2)
+            c = 2 * sum_d * sum_a_j * sum_b
+            d = -((sum_b**2 + sum_d**2) * sum_c_j) - ((sum_a_j**2) * sum_c_i)
+            f = sum_c_j
+            g = sum_c_i * sum_c_j - sum_d**2
+
+            with np.errstate(divide="ignore", invalid="ignore"):
+                TE = (
+                    0.5 * np.log(a.astype(complex))
+                    - 0.5 * np.log((b + c + d).astype(complex))
+                    - 0.5 * np.log(f.astype(complex))
+                    + 0.5 * np.log(g.astype(complex))
+                )
+            np.fill_diagonal(TE, 0)
             TE[TE < 0] = 0
             netTE = TE - TE.T
             Difference = np.real((netTE).sum(axis=1))
-            norm_difference = Difference / np.max(np.abs(Difference))
+            max_val = np.max(np.abs(Difference))
+            norm_difference = Difference / max_val if max_val > 0 else Difference
             return norm_difference
 
     def _transfer_entropy(self, cutoff, tau):

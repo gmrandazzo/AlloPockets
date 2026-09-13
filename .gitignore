@@ -228,3 +228,4 @@ ensembles/
 # Benchmark temporary extraction files
 data/benchmark/work/
 data/benchmark/cache/
+models/route1_autogluon/
