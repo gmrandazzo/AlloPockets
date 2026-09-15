@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Dict, List
+from typing import Any, Dict, List
 import pandas as pd
 
 _DATA_PATH = Path(__file__).resolve().parent / "aa_scales_data.json"
@@ -119,7 +119,7 @@ def get_residues_scales_df(residues_df: pd.DataFrame) -> pd.DataFrame:
     for _, row in residues_df.iterrows():
         res_name = str(row[comp_col])
         scales = get_residue_scales(res_name)
-        d = {
+        d: Dict[str, Any] = {
             "auth_asym_id": str(row["auth_asym_id"]),
             "auth_seq_id": str(row["auth_seq_id"]),
             "pdbx_PDB_ins_code": str(row.get("pdbx_PDB_ins_code", "?")),

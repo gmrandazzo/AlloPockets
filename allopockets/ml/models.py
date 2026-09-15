@@ -92,6 +92,33 @@ class PocketClassifier:
                     "LightGBM not installed. Falling back to HistGradientBoostingClassifier."
                 )
 
+        if mtype in ("lightgbm_ranker", "lambdarank", "ranker"):
+            try:
+                import lightgbm as lgb
+
+                self.model = lgb.LGBMRanker(
+                    objective="lambdarank",
+                    n_estimators=self.config.n_estimators,
+                    learning_rate=self.config.learning_rate,
+                    max_depth=self.config.max_depth,
+                    num_leaves=self.config.num_leaves,
+                    min_child_samples=self.config.min_child_samples,
+                    subsample=self.config.subsample,
+                    subsample_freq=1 if self.config.subsample < 1.0 else 0,
+                    colsample_bytree=self.config.colsample_bytree,
+                    reg_alpha=self.config.reg_alpha,
+                    reg_lambda=self.config.reg_lambda,
+                    random_state=seed,
+                    n_jobs=self.config.n_jobs,
+                    verbose=-1,
+                )
+                self.model_backend = "lightgbm_ranker"
+                return
+            except ImportError:
+                logger.warning(
+                    "LightGBM not installed. Falling back to HistGradientBoostingClassifier."
+                )
+
         if mtype in ("xgboost", "xgb"):
             try:
                 import xgboost as xgb
@@ -141,6 +168,7 @@ class PocketClassifier:
         X: Union[pd.DataFrame, np.ndarray],
         y: np.ndarray,
         sample_weight: Optional[np.ndarray] = None,
+        group: Optional[np.ndarray] = None,
     ):
         """Fit model with automatic feature selection alignment."""
         if isinstance(X, pd.DataFrame):
@@ -157,6 +185,13 @@ class PocketClassifier:
             X_arr = np.asarray(X)
 
         y_arr = np.asarray(y, dtype=int)
+
+        if self.model_backend == "lightgbm_ranker":
+            if group is not None:
+                self.model.fit(X_arr, y_arr, group=group)
+            else:
+                self.model.fit(X_arr, y_arr)
+            return self
 
         if self.model_backend == "autogluon":
             from autogluon.tabular import TabularPredictor
@@ -193,6 +228,8 @@ class PocketClassifier:
         return self
 
     def predict(self, X: Union[pd.DataFrame, np.ndarray]) -> np.ndarray:
+        if self.model_backend == "lightgbm_ranker":
+            return (self.predict_score(X) >= 0.5).astype(int)
         if self.model_backend == "autogluon":
             df_in = pd.DataFrame(self._prepare_input(X), columns=self.feature_names)
             preds = self.model.predict(df_in)
@@ -202,6 +239,10 @@ class PocketClassifier:
 
     def predict_proba(self, X: Union[pd.DataFrame, np.ndarray]) -> np.ndarray:
         """Return probabilities of shape (N, 2)."""
+        if self.model_backend == "lightgbm_ranker":
+            p1 = self.predict_score(X)
+            p0 = 1.0 - p1
+            return np.column_stack([p0, p1])
         if self.model_backend == "autogluon":
             df_in = pd.DataFrame(self._prepare_input(X), columns=self.feature_names)
             proba_df = self.model.predict_proba(df_in)
@@ -216,6 +257,11 @@ class PocketClassifier:
 
     def predict_score(self, X: Union[pd.DataFrame, np.ndarray]) -> np.ndarray:
         """Return positive class allosteric probability vector of shape (N,)."""
+        if self.model_backend == "lightgbm_ranker":
+            X_arr = self._prepare_input(X)
+            raw_scores = self.model.predict(X_arr)
+            # Map ranking logits to [0, 1] using standard sigmoid
+            return 1.0 / (1.0 + np.exp(-raw_scores))
         probs = self.predict_proba(X)
         return probs[:, 1]
 

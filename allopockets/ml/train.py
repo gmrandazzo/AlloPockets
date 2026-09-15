@@ -112,9 +112,19 @@ def train_pipeline(
         seed=seed,
     )
 
+    is_ranker = model_type.lower() in ("lightgbm_ranker", "lambdarank", "ranker")
+
     for fold_idx, (train_idx, val_idx) in enumerate(splits, 1):
         train_sub = df.iloc[train_idx]
         val_sub = df.iloc[val_idx]
+
+        if is_ranker:
+            train_sub = train_sub.sort_values(by=group_col)
+            train_groups = np.asarray(
+                train_sub.groupby(group_col, sort=False).size().values, dtype=int
+            )
+        else:
+            train_groups = None
 
         train_imp, val_imp = impute_features(train_sub, val_sub, feature_cols=feature_names)
         assert val_imp is not None
@@ -126,7 +136,7 @@ def train_pipeline(
         y_val = val_imp[target_col].astype(int).values
 
         clf = PocketClassifier(config=m_config, feature_names=feature_names)
-        clf.fit(X_train, y_train)
+        clf.fit(X_train, y_train, group=train_groups)
 
         val_probs = clf.predict_score(X_val)
         oof_probs[val_idx] = val_probs
@@ -181,9 +191,22 @@ def train_pipeline(
     }
 
     # Final fit on entire dataset
-    df_full_imp, _ = impute_features(df, feature_cols=feature_names)
+    if is_ranker:
+        df_full = df.sort_values(by=group_col)
+        full_groups: Optional[np.ndarray] = np.asarray(
+            df_full.groupby(group_col, sort=False).size().values, dtype=int
+        )
+    else:
+        df_full = df
+        full_groups = None
+
+    df_full_imp, _ = impute_features(df_full, feature_cols=feature_names)
     final_clf = PocketClassifier(config=m_config, feature_names=feature_names)
-    final_clf.fit(df_full_imp[feature_names].values, df_full_imp[target_col].astype(int).values)
+    final_clf.fit(
+        df_full_imp[feature_names].values,
+        df_full_imp[target_col].astype(int).values,
+        group=full_groups,
+    )
     final_clf.save(out_dir)
 
     # Optional evaluation on held-out test dataset

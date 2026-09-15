@@ -76,7 +76,8 @@ class PDBCif:
         """
         try:
             file = tempfile.NamedTemporaryFile("wb+", suffix=".cif.gz")
-            file.write(self._cif_content)
+            content = self._cif_content or b""
+            file.write(content)
             yield file
         finally:
             if file:
@@ -87,7 +88,8 @@ class PDBCif:
         """
         Return the contents of the cif as plain text
         """
-        return gzip.decompress(self._cif_content).decode()
+        content = self._cif_content or b""
+        return gzip.decompress(content).decode()
 
 
 class Pdb(Cif):

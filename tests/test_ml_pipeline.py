@@ -146,6 +146,29 @@ def test_pocket_classifier_regularized_backends(synthetic_pocket_data):
         assert np.all((scores >= 0.0) & (scores <= 1.0))
 
 
+def test_pocket_classifier_ranker(synthetic_pocket_data):
+    df, feature_cols = synthetic_pocket_data
+    df_sorted = df.sort_values(by="Pockets_pdb")
+    group = np.asarray(df_sorted.groupby("Pockets_pdb", sort=False).size().values, dtype=int)
+    X = df_sorted[feature_cols].values
+    y = df_sorted["Label_label"].values
+
+    cfg = ModelConfig(
+        model_type="lightgbm_ranker",
+        n_estimators=10,
+        seed=42,
+    )
+    clf = PocketClassifier(config=cfg, feature_names=feature_cols)
+    clf.fit(X, y, group=group)
+    scores = clf.predict_score(X)
+    assert len(scores) == len(df)
+    assert np.all((scores >= 0.0) & (scores <= 1.0))
+    preds = clf.predict(X)
+    assert preds.shape == (len(df),)
+    probs = clf.predict_proba(X)
+    assert probs.shape == (len(df), 2)
+
+
 def test_pocket_classifier_autogluon_handling():
     cfg = ModelConfig(model_type="autogluon")
     try:
