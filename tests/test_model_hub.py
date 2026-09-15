@@ -78,6 +78,7 @@ def test_get_model_dir_unknown_raises():
 
 
 def test_load_model():
+    pytest.importorskip("lightgbm")
     clf = load_model("minimal_lgbm")
     assert isinstance(clf, PocketClassifier)
     assert len(clf.feature_names) == 186
