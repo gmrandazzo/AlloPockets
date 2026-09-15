@@ -19,11 +19,14 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+import logging
 import os, tempfile, re, subprocess, shutil
 from typing import Optional, Union, List, Dict, Tuple
 import pandas as pd
 from tqdm import tqdm
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 cwd = Path(__file__).resolve().parent
 
@@ -1015,13 +1018,12 @@ def get_pockets_features(clean_pdb, pockets, features, path=path):
     )
 
 
-def load_default_predictor(model_path=None):
+def load_default_predictor(model_path=None, model_name="minimal_lgbm"):
     """
     Load trained model. Prefers lightweight PocketClassifier (LightGBM/XGBoost/HistGBM),
-    with graceful fallback to AutoGluon if available.
+    with automatic download and cross-platform caching (~/.cache/allopockets/models/),
+    and graceful fallback to AutoGluon if available.
     """
-    repo_root = cwd.parent
-
     # 1. Custom path if provided
     if model_path is not None:
         p = Path(model_path)
@@ -1034,14 +1036,26 @@ def load_default_predictor(model_path=None):
 
             return TabularPredictor.load(str(p))
 
-    # 2. Check for newly trained lightweight model
+    # 2. Check model hub (cache, local repo, or auto-download)
+    try:
+        from allopockets.ml.hub import get_model_dir
+        from allopockets.ml.models import PocketClassifier
+
+        m_dir = get_model_dir(model_name, auto_download=True)
+        if (m_dir / "model.joblib").exists():
+            return PocketClassifier.load(m_dir)
+    except Exception as e:
+        logger = logging.getLogger(__name__)
+        logger.warning(f"Could not load model '{model_name}' from hub: {e}")
+
+    # 3. Fallback to legacy models/lgbm_pocket_classifier or models/pockets_physchem_deploy
+    repo_root = cwd.parent
     lgbm_dir = repo_root / "models/lgbm_pocket_classifier"
     if (lgbm_dir / "model.joblib").exists():
         from allopockets.ml.models import PocketClassifier
 
         return PocketClassifier.load(lgbm_dir)
 
-    # 3. Fallback to legacy AutoGluon deployment model
     deploy_dir = repo_root / "models/pockets_physchem_deploy"
     if (deploy_dir / "predictor.pkl").exists():
         try:
@@ -1078,6 +1092,7 @@ def predict(
     uniref_path=None,
     model=None,
     model_path=None,
+    model_name="minimal_lgbm",
 ):
     if all(i is None for i in [email, uniref_path]):
         print("One of 'email' or 'uniref_path' must be passed appropriately")
@@ -1110,11 +1125,11 @@ def predict(
     pockets_features = get_pockets_features(clean_pdb, pockets, features, path=path)
 
     # Load predictor
-    predictor = model or load_default_predictor(model_path)
+    predictor = model or load_default_predictor(model_path=model_path, model_name=model_name)
     if predictor is None:
         raise RuntimeError(
-            "No trained model found. Please train a model with 'allopockets-train' "
-            "or ensure models/lgbm_pocket_classifier or models/pockets_physchem_deploy exists."
+            "No trained model found. Please train a model with 'allopockets train' "
+            "or download weights with 'allopockets download-model --model minimal_lgbm'."
         )
 
     if hasattr(predictor, "predict_score"):
@@ -1504,6 +1519,7 @@ def run_prediction_cli(
     uniref_path: Optional[str] = None,
     outdir: str = "predict",
     model_path: Optional[str] = None,
+    model_name: str = "minimal_lgbm",
 ):
     """
     CLI runner for prediction binary.
@@ -1524,6 +1540,7 @@ def run_prediction_cli(
         email=email,
         uniref_path=uniref_path,
         model_path=model_path,
+        model_name=model_name,
     )
 
     if preds is not None and not preds.empty:

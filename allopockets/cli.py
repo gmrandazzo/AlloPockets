@@ -20,6 +20,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 Command Line Interface (CLI) binaries and entrypoints for AlloPockets.
 """
 
+from typing import Optional
 import click
 
 
@@ -44,7 +45,14 @@ def main():
 )
 @click.option("--outdir", default="predict", help="Output directory (default: ./predict)")
 @click.option("--model-path", default=None, help="Path to custom model directory")
-def predict_cli(pdb_input, chains, email, uniref_path, outdir, model_path):
+@click.option(
+    "--model",
+    "model_name",
+    default="minimal_lgbm",
+    type=click.Choice(["minimal_lgbm", "minimal_xgboost"]),
+    help="Pretrained model name to use if --model-path is not set (default: minimal_lgbm)",
+)
+def predict_cli(pdb_input, chains, email, uniref_path, outdir, model_path, model_name):
     """Run allosteric pocket prediction on a protein structure."""
     from allopockets.predict import run_prediction_cli
 
@@ -55,6 +63,7 @@ def predict_cli(pdb_input, chains, email, uniref_path, outdir, model_path):
         uniref_path=uniref_path,
         outdir=outdir,
         model_path=model_path,
+        model_name=model_name,
     )
 
 
@@ -255,11 +264,109 @@ def inspect_3d_cli(pdb_id, pocket_id, path, db_path, html, open_browser):
     )
 
 
+@click.command("download-model")
+@click.option(
+    "--model",
+    "model_name",
+    default="minimal_lgbm",
+    type=click.Choice(["minimal_lgbm", "minimal_xgboost"]),
+    help="Model name to download (default: minimal_lgbm)",
+)
+@click.option("--force", is_flag=True, help="Force re-download even if already cached")
+def download_model_cli(model_name: str, force: bool):
+    """Download pretrained model weights into local user cache."""
+    from allopockets.ml.hub import download_model
+
+    click.echo(f"Downloading model '{model_name}'...")
+    path = download_model(model_name=model_name, force=force)
+    click.echo(f"Model '{model_name}' ready at: {path}")
+
+
+@click.group("models")
+def models_cli():
+    """Manage pretrained AlloPockets model weights and cache."""
+    pass
+
+
+@models_cli.command("list")
+def models_list_cli():
+    """List available pretrained models and local cache status."""
+    from allopockets.ml.hub import list_available_models
+
+    models = list_available_models()
+    click.echo("\nAvailable Pretrained Models:")
+    click.echo("=" * 60)
+    for name, meta in models.items():
+        status = "CACHED" if meta["cached"] else "NOT CACHED"
+        default_flag = " (DEFAULT)" if meta["default"] else ""
+        click.echo(f"• {name}{default_flag} [{status}] ({meta['size_kb']} KB)")
+        click.echo(f"  Description: {meta['description']}")
+        if meta["local_path"]:
+            click.echo(f"  Path: {meta['local_path']}")
+        click.echo("-" * 60)
+
+
+@models_cli.command("download")
+@click.option(
+    "--model",
+    "model_name",
+    default="minimal_lgbm",
+    type=click.Choice(["minimal_lgbm", "minimal_xgboost"]),
+    help="Model name to download (default: minimal_lgbm)",
+)
+@click.option("--force", is_flag=True, help="Force re-download even if already cached")
+def models_download_cli(model_name: str, force: bool):
+    """Download pretrained model weights into local user cache."""
+    from allopockets.ml.hub import download_model
+
+    click.echo(f"Downloading model '{model_name}'...")
+    path = download_model(model_name=model_name, force=force)
+    click.echo(f"Model '{model_name}' ready at: {path}")
+
+
+@models_cli.command("path")
+@click.option(
+    "--model",
+    "model_name",
+    default="minimal_lgbm",
+    type=click.Choice(["minimal_lgbm", "minimal_xgboost"]),
+    help="Model name to locate (default: minimal_lgbm)",
+)
+def models_path_cli(model_name: str):
+    """Print the local filesystem directory path for a model."""
+    from allopockets.ml.hub import get_model_dir
+
+    try:
+        path = get_model_dir(model_name=model_name, auto_download=False)
+        click.echo(str(path))
+    except FileNotFoundError as e:
+        raise click.ClickException(str(e))
+
+
+@models_cli.command("clean")
+@click.option(
+    "--model",
+    "model_name",
+    default=None,
+    type=click.Choice(["minimal_lgbm", "minimal_xgboost"]),
+    help="Specific model to remove from cache (default: all)",
+)
+def models_clean_cli(model_name: Optional[str]):
+    """Remove cached model weights from local user cache."""
+    from allopockets.ml.hub import clear_cache
+
+    clear_cache(model_name=model_name)
+    target = f"model '{model_name}'" if model_name else "all models"
+    click.echo(f"Cleared cache for {target}.")
+
+
 # Attach subcommands to main group
 main.add_command(predict_cli, name="predict")
 main.add_command(prepare_data_cli, name="prepare-data")
 main.add_command(train_cli, name="train")
 main.add_command(inspect_3d_cli, name="inspect-3d")
+main.add_command(download_model_cli, name="download-model")
+main.add_command(models_cli, name="models")
 
 if __name__ == "__main__":
     main()

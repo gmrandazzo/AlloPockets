@@ -26,6 +26,14 @@ from allopockets.ml.models import PocketClassifier
 from allopockets.ml.metrics import compute_classification_metrics, compute_topk_retrieval
 from allopockets.ml.prepare import prepare_dataset
 from allopockets.ml.train import train_pipeline
+from allopockets.ml.hub import (
+    get_cache_dir,
+    get_model_dir,
+    download_model,
+    load_model,
+    list_available_models,
+    clear_cache,
+)
 
 __all__ = [
     "ModelConfig",
@@ -39,4 +47,10 @@ __all__ = [
     "compute_topk_retrieval",
     "prepare_dataset",
     "train_pipeline",
+    "get_cache_dir",
+    "get_model_dir",
+    "download_model",
+    "load_model",
+    "list_available_models",
+    "clear_cache",
 ]

@@ -24,7 +24,15 @@ AlloPockets: Allosteric Pocket Prediction, Pathway Tracing, and 3D Visualization
 __version__ = "1.0.0"
 
 from allopockets.pockets import Pocket, run_fpocket, get_pockets_info
-from allopockets.ml import PocketClassifier, prepare_dataset, train_pipeline
+from allopockets.ml import (
+    PocketClassifier,
+    prepare_dataset,
+    train_pipeline,
+    load_model,
+    download_model,
+    get_cache_dir,
+    list_available_models,
+)
 from allopockets.viz import inspect_pocket_cli, generate_3d_pocket_html
 from allopockets.predict import (
     get_cif,
@@ -63,4 +71,8 @@ __all__ = [
     "train_pipeline",
     "inspect_pocket_cli",
     "generate_3d_pocket_html",
+    "load_model",
+    "download_model",
+    "get_cache_dir",
+    "list_available_models",
 ]

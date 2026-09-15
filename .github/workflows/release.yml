@@ -1,0 +1,48 @@
+name: Release & Model Packaging
+
+on:
+  push:
+    tags:
+      - 'v*'
+  release:
+    types: [published]
+
+jobs:
+  release:
+    name: Build Distribution & Upload Release Assets
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install Build Tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install build
+
+      - name: Package Pretrained Models
+        run: |
+          python scripts/package_models.py
+
+      - name: Build Python Package (Wheel & sdist)
+        run: |
+          python -m build
+
+      - name: Upload Assets to GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'release'
+        with:
+          files: |
+            dist/*.whl
+            dist/*.tar.gz
+            dist/models/*.tar.gz
+            dist/models/checksums.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
