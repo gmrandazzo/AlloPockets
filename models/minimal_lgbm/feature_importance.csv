@@ -1,0 +1,187 @@
+feature,importance
+FPocket_Mean alpha-sphere radius,232
+FPocket_Pocket Score,217
+FPocket_Local hydrophobic density Score,188
+ProDy_mechstiff,185
+FPocket_Drug Score,168
+FPocket_Number of alpha spheres,159
+FPocket_Mean B-factor of pocket residues,115
+ProDy_prs_effectiveness,111
+DSSP_NH_O_1_relidx,104
+DSSP_O_NH_2_relidx,103
+DSSP_O_NH_1_energy,97
+DSSP_O_NH_1_relidx,93
+FPocket_Number of apolar alpha sphere,92
+TransferEntropy_TE,92
+Graphein_relativemutability,87
+ProDy_prs_sensitivity,87
+Melodia_torsion,86
+FPocket_Mean alpha-sphere Solvent Acc.,83
+DSSP_secondary structure_-,81
+DSSP_NH_O_2_relidx,80
+DSSP_NH_O_2_energy,80
+DSSP_NH_O_1_energy,79
+Melodia_curvature,75
+Melodia_arc_len,72
+Graphein_hphob_welling,69
+Melodia_propensity,68
+DSSP_secondary structure_T,67
+FPocket_Proportion of apolar alpha sphere,65
+DSSP_O_NH_2_energy,63
+DSSP_phi,62
+ProDy_essa,62
+Melodia_psi,60
+FPocket_Proportion of polar atoms,60
+FPocket_Polarity Score,57
+Melodia_phi,57
+Amino acids_label_comp_id_P,57
+FPocket_Flexibility,56
+ProDy_rmsf,56
+Graphein_numbercodons,55
+FPocket_Charge Score,52
+Biopython_EXP_HSE_B_D,52
+DSSP_secondary structure_S,51
+Graphein_pka_rgroup,51
+Graphein_averageflexibility,50
+Amino acids_label_comp_id_S,49
+FreeSASA_relative-area_apolar,48
+FPocket_Polar SASA,48
+FreeSASA_area_side-chain,47
+Graphein_pka_nh3,46
+FreeSASA_area_polar,45
+Amino acids_label_comp_id_G,45
+Graphein_recognitionfactors,44
+Amino acids_label_comp_id_W,44
+Graphein_dim_5,44
+FPocket_Apolar SASA,44
+Amino acids_label_comp_id_L,43
+Graphein_accessibleresidues,43
+Amino acids_label_comp_id_N,42
+Graphein_isoelectric_points,42
+Graphein_a_a_composition,40
+FreeSASA_relative-area_polar,40
+Graphein_alpha_helixlevitt,39
+Biopython_EXP_CN,38
+FPocket_Cent. of mass - Alpha Sphere max dist,38
+Graphein_molecularweight,38
+Amino acids_label_comp_id_I,37
+Melodia_writhing,36
+Graphein_beta_turnlevitt,36
+Graphein_beta_turnroux,36
+Amino acids_label_comp_id_V,36
+Graphein_bulkiness,36
+FreeSASA_area_total,36
+Amino acids_label_comp_id_T,35
+Graphein_dim_6,35
+FPocket_Total SASA,34
+FreeSASA_relative-area_main-chain,34
+DSSP_secondary structure_G,34
+FreeSASA_area_apolar,33
+Amino acids_label_comp_id_A,33
+FPocket_Pocket volume (convex hull),32
+Amino acids_label_comp_id_Q,32
+Amino acids_label_comp_id_Y,32
+Graphein_buriedresidues,32
+Graphein_hphob_breese,32
+Graphein_a_a_swiss_prot,31
+Graphein_alpha_helixroux,31
+DSSP_psi,31
+Graphein_beta_turnfasman,30
+Graphein_pka_cooh_alpha,30
+FPocket_Alpha sphere density,30
+Graphein_alpha_helixfasman,29
+Graphein_polarityzimmerman,29
+Graphein_hphob_janin,29
+FPocket_Pocket volume (Monte Carlo),28
+FreeSASA_area_main-chain,28
+Amino acids_label_comp_id_F,28
+Biopython_EXP_HSE_B_U,27
+Graphein_ratioside,26
+Graphein_antiparallelbeta_strand,26
+Graphein_beta_sheetroux,26
+Graphein_dim_2,26
+Graphein_hphob_wilson,25
+Amino acids_label_comp_id_H,25
+Graphein_dim_7,25
+Graphein_beta_sheetlevitt,25
+FPocket_Amino Acid based volume Score,24
+Graphein_averageburied,24
+DSSP_secondary structure_H,23
+Graphein_dim_3,23
+Amino acids_label_comp_id_M,23
+Graphein_hplchfba,23
+DSSP_secondary structure_E,23
+Graphein_refractivity,23
+Graphein_hplc7_4,23
+Amino acids_label_comp_id_K,22
+Amino acids_label_comp_id_R,22
+Graphein_coilroux,21
+DSSP_relative ASA,21
+Graphein_hphob_rose,20
+FreeSASA_relative-area_total,20
+Amino acids_label_comp_id_E,20
+Graphein_parallelbeta_strand,20
+Graphein_dim_1,19
+Amino acids_label_comp_id_D,19
+Graphein_hphob_ph3_4,18
+Graphein_hphob_chothia,18
+Graphein_hphob_tanford,17
+Graphein_beta_sheetfasman,16
+Graphein_hplc2_1,16
+Graphein_hphob_guy,16
+Graphein_hphob_wolfenden,15
+HHBlits_P,14
+Graphein_hphob_argos,14
+Graphein_polaritygrantham,14
+HHBlits_S,14
+Graphein_hphob_manavalan,14
+Amino acids_label_comp_id_C,13
+Graphein_transmembranetendency,13
+Graphein_hphob_sweet,13
+Graphein_totalbeta_strand,13
+Graphein_hplctfa,12
+Graphein_hphob_leo,12
+Graphein_hphob_mobility,11
+HHBlits_Y,11
+Graphein_hphob_eisenberg,11
+Graphein_hphob_ph7_5,11
+Graphein_hphob_parker,10
+FPocket_Hydrophobicity Score,9
+HHBlits_A,9
+HHBlits_N,9
+Graphein_hphob_woods,9
+HHBlits_V,9
+HHBlits_H,9
+Graphein_hphob_black,9
+DSSP_secondary structure_B,9
+Graphein_hphob_doolittle,8
+Graphein_dim_4,7
+HHBlits_G,7
+HHBlits_E,6
+HHBlits_K,5
+HHBlits_R,5
+HHBlits_L,5
+HHBlits_I,5
+HHBlits_T,5
+HHBlits_M,5
+Graphein_hphob_miyazawa,4
+Graphein_hphob_roseman,4
+HHBlits_Q,4
+HHBlits_W,4
+DSSP_secondary structure_I,3
+HHBlits_F,3
+Biopython_EXP_RD,0
+Biopython_EXP_RD_CA,0
+HHBlits_D,0
+HHBlits_C,0
+PyRosetta_ddG,0
+HHBlits_M->M,0
+HHBlits_M->I,0
+HHBlits_M->D,0
+HHBlits_I->M,0
+HHBlits_I->I,0
+HHBlits_D->M,0
+HHBlits_D->D,0
+HHBlits_Neff,0
+HHBlits_Neff_I,0
+HHBlits_Neff_D,0

@@ -92,7 +92,27 @@ def predict_cli(pdb_input, chains, email, uniref_path, outdir, model_path):
     default="pockets_dataset.parquet",
     help="Output dataset filename (default: pockets_dataset.parquet)",
 )
-def prepare_data_cli(db_path, outdir, limit, pdb_file, threshold, workers, output_filename):
+@click.option(
+    "--minimal-chains/--all-chains",
+    default=True,
+    help="Restrict cavity detection to minimal interacting protein chains (default: True)",
+)
+@click.option(
+    "--outlier-filter/--no-outlier-filter",
+    default=False,
+    help="Apply author nres outlier filter (|z| < 3) (default: False)",
+)
+def prepare_data_cli(
+    db_path,
+    outdir,
+    limit,
+    pdb_file,
+    threshold,
+    workers,
+    output_filename,
+    minimal_chains,
+    outlier_filter,
+):
     """Extract and featurize pocket dataset directly from database.db."""
     from allopockets.ml.prepare import prepare_dataset
 
@@ -104,6 +124,8 @@ def prepare_data_cli(db_path, outdir, limit, pdb_file, threshold, workers, outpu
         label_threshold=threshold,
         workers=workers,
         output_filename=output_filename,
+        use_minimal_chains=minimal_chains,
+        outlier_filter=outlier_filter,
     )
 
 

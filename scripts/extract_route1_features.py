@@ -50,8 +50,26 @@ from allopockets.features.utils import Cif
 from allopockets.pockets.pocket import Pocket
 
 AA_LETTERS = [
-    "A", "C", "D", "E", "F", "G", "H", "I", "K", "L",
-    "M", "N", "P", "Q", "R", "T", "V", "W", "Y", "S",
+    "A",
+    "C",
+    "D",
+    "E",
+    "F",
+    "G",
+    "H",
+    "I",
+    "K",
+    "L",
+    "M",
+    "N",
+    "P",
+    "Q",
+    "R",
+    "T",
+    "V",
+    "W",
+    "Y",
+    "S",
 ]
 LETTER_MAP = {k.upper(): v for k, v in IUPACData.protein_letters_3to1.items()}
 
@@ -100,7 +118,8 @@ def extract_residue_features(pdb: str, work_dir: str) -> pd.DataFrame:
         fs_cols = [
             c
             for c in fs.columns
-            if c not in ["auth_asym_id", "auth_seq_id", "pdbx_PDB_ins_code", "relative-area_side-chain"]
+            if c
+            not in ["auth_asym_id", "auth_seq_id", "pdbx_PDB_ins_code", "relative-area_side-chain"]
         ]
         fs_df = fs[["auth_asym_id", "auth_seq_id"] + fs_cols].rename(
             columns={c: f"FreeSASA_{c}" for c in fs_cols}
@@ -146,9 +165,21 @@ def extract_residue_features(pdb: str, work_dir: str) -> pd.DataFrame:
         essa = pro.essa()
         prody_df = (
             prs[["auth_asym_id", "auth_seq_id", "prs_effectiveness", "prs_sensitivity"]]
-            .merge(stiff[["auth_asym_id", "auth_seq_id", "mechstiff"]], on=["auth_asym_id", "auth_seq_id"], how="outer")
-            .merge(rmsf[["auth_asym_id", "auth_seq_id", "rmsf"]], on=["auth_asym_id", "auth_seq_id"], how="outer")
-            .merge(essa[["auth_asym_id", "auth_seq_id", "essa"]], on=["auth_asym_id", "auth_seq_id"], how="outer")
+            .merge(
+                stiff[["auth_asym_id", "auth_seq_id", "mechstiff"]],
+                on=["auth_asym_id", "auth_seq_id"],
+                how="outer",
+            )
+            .merge(
+                rmsf[["auth_asym_id", "auth_seq_id", "rmsf"]],
+                on=["auth_asym_id", "auth_seq_id"],
+                how="outer",
+            )
+            .merge(
+                essa[["auth_asym_id", "auth_seq_id", "essa"]],
+                on=["auth_asym_id", "auth_seq_id"],
+                how="outer",
+            )
             .rename(
                 columns={
                     "prs_effectiveness": "ProDy_prs_effectiveness",
@@ -242,7 +273,9 @@ def compute_pdb_pocket_features(
             pkt = Pocket(str(pocket_cif))
             pkt_res = pkt.residues[["auth_asym_id", "auth_seq_id"]].drop_duplicates()
             sub = res_feats.merge(pkt_res, on=["auth_asym_id", "auth_seq_id"])
-            means = sub.drop(columns=["auth_asym_id", "auth_seq_id"]).mean(numeric_only=True).to_dict()
+            means = (
+                sub.drop(columns=["auth_asym_id", "auth_seq_id"]).mean(numeric_only=True).to_dict()
+            )
             record = {"Pockets_pdb": pdb, "Pockets_pocket": pname}
             record.update(means)
             rows.append(record)
@@ -260,7 +293,9 @@ def main():
     parser = argparse.ArgumentParser(description="Extract Route 1 155 features for benchmark.")
     parser.add_argument("--data-dir", default="data/benchmark", help="Benchmark data directory.")
     parser.add_argument("--pdb", default=None, help="Process single PDB only for testing.")
-    parser.add_argument("--workers", type=int, default=4, help="Number of parallel worker processes.")
+    parser.add_argument(
+        "--workers", type=int, default=4, help="Number of parallel worker processes."
+    )
     parser.add_argument("--dry-run", action="store_true", help="Perform single dry-run check.")
     args = parser.parse_args()
 
@@ -280,8 +315,10 @@ def main():
     if args.pdb:
         all_pdbs = [args.pdb]
 
-    print(f"Starting Route 1 feature extraction for {len(all_pdbs)} PDBs using {args.workers} workers...")
-    
+    print(
+        f"Starting Route 1 feature extraction for {len(all_pdbs)} PDBs using {args.workers} workers..."
+    )
+
     from concurrent.futures import ProcessPoolExecutor, as_completed
 
     all_results = []
@@ -300,7 +337,9 @@ def main():
         with ProcessPoolExecutor(max_workers=args.workers) as executor:
             for pdb in all_pdbs:
                 sub_pockets = all_pockets[all_pockets["Pockets_pdb"] == pdb]
-                fut = executor.submit(compute_pdb_pocket_features, pdb, sub_pockets, work_dir, cache_dir)
+                fut = executor.submit(
+                    compute_pdb_pocket_features, pdb, sub_pockets, work_dir, cache_dir
+                )
                 futures[fut] = pdb
 
             completed_count = 0
@@ -313,7 +352,10 @@ def main():
                         all_results.append(df_pdb)
                     print(f"[{completed_count}/{len(all_pdbs)}] Finished PDB: {pdb}")
                 except Exception as e:
-                    print(f"[{completed_count}/{len(all_pdbs)}] Error on PDB {pdb}: {e}", file=sys.stderr)
+                    print(
+                        f"[{completed_count}/{len(all_pdbs)}] Error on PDB {pdb}: {e}",
+                        file=sys.stderr,
+                    )
 
     if args.dry_run or not all_results:
         print("Dry run completed successfully.")
@@ -332,8 +374,17 @@ def main():
     test_155.to_parquet(out_test)
 
     feature_cols = [
-        c for c in train_155.columns
-        if c not in ["Pockets_pdb", "Pockets_pocket", "Pockets_nres", "site_in_pocket", "pocket_in_site", "Label_label"]
+        c
+        for c in train_155.columns
+        if c
+        not in [
+            "Pockets_pdb",
+            "Pockets_pocket",
+            "Pockets_nres",
+            "site_in_pocket",
+            "pocket_in_site",
+            "Label_label",
+        ]
     ]
 
     print("\n=== Extraction Complete ===")

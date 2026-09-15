@@ -83,6 +83,7 @@ def train_pipeline(
         "pocket_in_site",
         "index",
         "level_0",
+        "Pockets_nres",
     }
     feature_names = [
         c for c in df.columns if c not in exclude_cols and np.issubdtype(df[c].dtype, np.number)

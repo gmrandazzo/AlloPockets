@@ -22,6 +22,7 @@ from allopockets.database.utils import Assembly
 
 
 from .utils import *
+import os
 import requests, gzip, tempfile
 
 
@@ -34,13 +35,33 @@ class PDBCif:
         self.filename = filename or parent.filename
         self._name = name or parent._name
 
-        # Download the SIFTS-standardized .cif.gz file from PDBe
-        response = requests.get(
-            f"https://www.ebi.ac.uk/pdbe/entry-files/{self._name.lower()}_updated.cif.gz",
-            timeout=30,
-        )
-        assert response.status_code != 404, f"PDB not found (status_code {response.status_code})"
-        self._cif_content = response.content
+        # Check local cache first before downloading
+        self._cif_content = None
+        candidates = [
+            f"{getattr(parent, 'path', '.')}/{self._name.lower()}_updated.cif.gz",
+            f"{getattr(parent, 'path', '.')}/{self._name.lower()}.cif.gz",
+            f"data/benchmark/work/{self._name.lower()}_updated.cif.gz",
+            f"data/work/{self._name.lower()}_updated.cif.gz",
+        ]
+        for c in candidates:
+            if c and os.path.isfile(c) and c.endswith(".cif.gz") and os.path.getsize(c) > 0:
+                try:
+                    with open(c, "rb") as f:
+                        self._cif_content = f.read()
+                    break
+                except Exception:
+                    pass
+
+        if self._cif_content is None:
+            # Download the SIFTS-standardized .cif.gz file from PDBe
+            response = requests.get(
+                f"https://www.ebi.ac.uk/pdbe/entry-files/{self._name.lower()}_updated.cif.gz",
+                timeout=30,
+            )
+            assert (
+                response.status_code != 404
+            ), f"PDB not found (status_code {response.status_code})"
+            self._cif_content = response.content
 
     @cached_property
     def data(self):

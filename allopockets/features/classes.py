@@ -104,9 +104,7 @@ class BiopythonF:
     def residue_depth(self):
         rd = self._residue_depth()
         if rd is not None and hasattr(rd, "property_list"):
-            return self._process_property_list(
-                rd.property_list, ["EXP_RD", "EXP_RD_CA"]
-            )
+            return self._process_property_list(rd.property_list, ["EXP_RD", "EXP_RD_CA"])
         return pd.DataFrame(
             [
                 {

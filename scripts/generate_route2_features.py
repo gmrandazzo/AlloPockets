@@ -26,14 +26,36 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger(__name__)
 
 HHBLITS_COLS = [
-    "HHBlits_A", "HHBlits_C", "HHBlits_D", "HHBlits_E", "HHBlits_F",
-    "HHBlits_G", "HHBlits_H", "HHBlits_I", "HHBlits_K", "HHBlits_L",
-    "HHBlits_M", "HHBlits_N", "HHBlits_P", "HHBlits_Q", "HHBlits_R",
-    "HHBlits_S", "HHBlits_T", "HHBlits_V", "HHBlits_W", "HHBlits_Y",
-    "HHBlits_M->M", "HHBlits_M->I", "HHBlits_M->D",
-    "HHBlits_I->M", "HHBlits_I->I",
-    "HHBlits_D->M", "HHBlits_D->D",
-    "HHBlits_Neff", "HHBlits_Neff_I", "HHBlits_Neff_D",
+    "HHBlits_A",
+    "HHBlits_C",
+    "HHBlits_D",
+    "HHBlits_E",
+    "HHBlits_F",
+    "HHBlits_G",
+    "HHBlits_H",
+    "HHBlits_I",
+    "HHBlits_K",
+    "HHBlits_L",
+    "HHBlits_M",
+    "HHBlits_N",
+    "HHBlits_P",
+    "HHBlits_Q",
+    "HHBlits_R",
+    "HHBlits_S",
+    "HHBlits_T",
+    "HHBlits_V",
+    "HHBlits_W",
+    "HHBlits_Y",
+    "HHBlits_M->M",
+    "HHBlits_M->I",
+    "HHBlits_M->D",
+    "HHBlits_I->M",
+    "HHBlits_I->I",
+    "HHBlits_D->M",
+    "HHBlits_D->D",
+    "HHBlits_Neff",
+    "HHBlits_Neff_I",
+    "HHBlits_Neff_D",
 ]
 ROSETTA_COLS = ["PyRosetta_ddG"]
 
@@ -87,8 +109,17 @@ def generate_route2_datasets(
     test_df.to_parquet(out_test_path)
 
     feature_cols = [
-        c for c in train_df.columns
-        if c not in ["Pockets_pdb", "Pockets_pocket", "Pockets_nres", "site_in_pocket", "pocket_in_site", "Label_label"]
+        c
+        for c in train_df.columns
+        if c
+        not in [
+            "Pockets_pdb",
+            "Pockets_pocket",
+            "Pockets_nres",
+            "site_in_pocket",
+            "pocket_in_site",
+            "Label_label",
+        ]
     ]
     logger.info(f"Generated Route 2 train dataset: {train_df.shape} -> {out_train_path}")
     logger.info(f"Generated Route 2 test dataset:  {test_df.shape} -> {out_test_path}")
@@ -97,11 +128,21 @@ def generate_route2_datasets(
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Generate Route 2 (186 features) datasets and train models.")
-    parser.add_argument("--train-155", default="data/benchmark/curated_train_pockets_155feats.parquet")
-    parser.add_argument("--test-155", default="data/benchmark/curated_test_pockets_155feats.parquet")
-    parser.add_argument("--out-train", default="data/benchmark/curated_train_pockets_186feats.parquet")
-    parser.add_argument("--out-test", default="data/benchmark/curated_test_pockets_186feats.parquet")
+    parser = argparse.ArgumentParser(
+        description="Generate Route 2 (186 features) datasets and train models."
+    )
+    parser.add_argument(
+        "--train-155", default="data/benchmark/curated_train_pockets_155feats.parquet"
+    )
+    parser.add_argument(
+        "--test-155", default="data/benchmark/curated_test_pockets_155feats.parquet"
+    )
+    parser.add_argument(
+        "--out-train", default="data/benchmark/curated_train_pockets_186feats.parquet"
+    )
+    parser.add_argument(
+        "--out-test", default="data/benchmark/curated_test_pockets_186feats.parquet"
+    )
     parser.add_argument("--output-json", default="data/benchmark/route2_benchmark_results.json")
     args = parser.parse_args()
 
@@ -150,7 +191,9 @@ def main():
     print("\n" + "=" * 85)
     print("ROUTE 2 (186 MULTI-MODAL FEATURES) HELD-OUT TEST BENCHMARK RESULTS")
     print("=" * 85)
-    print(f"{'Model':<16} | {'Test ROC-AUC':<12} | {'Test PR-AUC':<12} | {'Test MCC':<10} | {'Top-1 Acc':<10} | {'Top-3 Acc':<10} | {'Top-5 Acc':<10}")
+    print(
+        f"{'Model':<16} | {'Test ROC-AUC':<12} | {'Test PR-AUC':<12} | {'Test MCC':<10} | {'Top-1 Acc':<10} | {'Top-3 Acc':<10} | {'Top-5 Acc':<10}"
+    )
     print("-" * 85)
 
     for model_name, res in all_results.items():
@@ -162,7 +205,9 @@ def main():
         top1 = t_ret.get("top_1_accuracy", 0.0) * 100
         top3 = t_ret.get("top_3_accuracy", 0.0) * 100
         top5 = t_ret.get("top_5_accuracy", 0.0) * 100
-        print(f"{model_name:<16} | {roc:<12.4f} | {pr:<12.4f} | {mcc:<10.4f} | {top1:<9.1f}% | {top3:<9.1f}% | {top5:<9.1f}%")
+        print(
+            f"{model_name:<16} | {roc:<12.4f} | {pr:<12.4f} | {mcc:<10.4f} | {top1:<9.1f}% | {top3:<9.1f}% | {top5:<9.1f}%"
+        )
     print("=" * 85)
 
 

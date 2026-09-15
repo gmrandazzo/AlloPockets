@@ -122,7 +122,9 @@ def train_autogluon_route1(
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Train & evaluate Route 1 (155 features) benchmark models.")
+    parser = argparse.ArgumentParser(
+        description="Train & evaluate Route 1 (155 features) benchmark models."
+    )
     parser.add_argument(
         "--train-data",
         default="data/benchmark/curated_train_pockets_155feats.parquet",
@@ -163,10 +165,14 @@ def main():
         "level_0",
     }
     feature_cols = [
-        c for c in train_df.columns if c not in exclude_cols and np.issubdtype(train_df[c].dtype, np.number)
+        c
+        for c in train_df.columns
+        if c not in exclude_cols and np.issubdtype(train_df[c].dtype, np.number)
     ]
 
-    logger.info(f"Loaded train ({len(train_df)} rows) and test ({len(test_df)} rows) with {len(feature_cols)} features.")
+    logger.info(
+        f"Loaded train ({len(train_df)} rows) and test ({len(test_df)} rows) with {len(feature_cols)} features."
+    )
 
     all_results: Dict[str, Any] = {}
     if os.path.exists(args.output_json):
@@ -229,7 +235,9 @@ def main():
     print("\n" + "=" * 80)
     print("ROUTE 1 (155 MULTI-MODAL FEATURES) MODEL BENCHMARK RESULTS")
     print("=" * 80)
-    print(f"{'Model':<16} | {'Test ROC-AUC':<12} | {'Test PR-AUC':<12} | {'Test MCC':<10} | {'Top-1 Acc':<10} | {'Top-3 Acc':<10}")
+    print(
+        f"{'Model':<16} | {'Test ROC-AUC':<12} | {'Test PR-AUC':<12} | {'Test MCC':<10} | {'Top-1 Acc':<10} | {'Top-3 Acc':<10}"
+    )
     print("-" * 80)
 
     for model_name, res in all_results.items():
@@ -248,7 +256,9 @@ def main():
             top1 = t_ret.get("top_1_accuracy", 0.0) * 100
             top3 = t_ret.get("top_3_accuracy", 0.0) * 100
 
-        print(f"{model_name:<16} | {roc:<12.4f} | {pr:<12.4f} | {mcc:<10.4f} | {top1:<9.1f}% | {top3:<9.1f}%")
+        print(
+            f"{model_name:<16} | {roc:<12.4f} | {pr:<12.4f} | {mcc:<10.4f} | {top1:<9.1f}% | {top3:<9.1f}%"
+        )
     print("=" * 80)
 
 

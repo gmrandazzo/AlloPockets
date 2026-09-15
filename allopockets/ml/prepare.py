@@ -36,19 +36,29 @@ from allopockets.pockets.pocket import Pocket
 logger = logging.getLogger(__name__)
 
 
-def get_site_residue_keys(site_json: Dict) -> Set[Tuple[str, str]]:
+def get_site_residue_keys(
+    site_json: Dict, info_json: Optional[Dict] = None
+) -> Set[Tuple[str, str]]:
     """
-    Extract set of (chain, res_num) from the stored site JSON in database.db.
+    Extract set of (chain, auth_seq_num) from the stored site JSON in database.db.
+    Matches author curation by filtering to protein-interacting chains and auth_seq_id.
     """
     if not site_json:
         return set()
 
+    ic_chains = set()
+    if info_json:
+        for ic in info_json.get("interacting_chains_info", []):
+            for c in ic.get("interacting_chains", {}).get("label_asym_id", []):
+                ic_chains.add(str(c))
+
     chains = site_json.get("label_asym_id") or site_json.get("auth_asym_id") or []
-    seqs = site_json.get("label_seq_id") or site_json.get("auth_seq_id") or []
+    seqs = site_json.get("auth_seq_id") or site_json.get("label_seq_id") or []
 
     res_set = set()
     for c, s in zip(chains, seqs):
-        res_set.add((str(c), str(s)))
+        if not ic_chains or str(c) in ic_chains:
+            res_set.add((str(c), str(s)))
     return res_set
 
 
@@ -57,18 +67,29 @@ def process_pdb_structure(
     site_records: List[Dict],
     work_dir: Path,
     label_threshold: float = 0.65,
+    use_minimal_chains: bool = True,
 ) -> pd.DataFrame:
     """
     Process a single PDB structure:
-    1. Fetch CIF and run fpocket.
+    1. Fetch CIF and run fpocket (optionally restricted to interacting protein chains).
     2. Extract pocket residues and geometry.
-    3. Calculate overlap with ground-truth allosteric site(s).
+    3. Calculate overlap with ground-truth allosteric site(s) using auth_seq_id alignment.
     4. Return DataFrame of candidate pockets.
     """
     from allopockets.predict import get_cif, get_clean_pdb
 
+    interacting_chains = set()
+    for s_rec in site_records:
+        info = s_rec.get("info", {})
+        for ic in info.get("interacting_chains_info", []):
+            chains = ic.get("interacting_chains", {}).get("label_asym_id", [])
+            interacting_chains.update(chains)
+    chains_filter = (
+        list(interacting_chains) if (use_minimal_chains and interacting_chains) else None
+    )
+
     pdb = get_cif(pdb_id=entry_id, path=str(work_dir))
-    clean_pdb = get_clean_pdb(pdb, protein_chains=None, path=str(work_dir))
+    clean_pdb = get_clean_pdb(pdb, protein_chains=chains_filter, path=str(work_dir))
 
     # Run fpocket
     pockets_df = run_fpocket(clean_pdb, path=str(work_dir))
@@ -78,7 +99,7 @@ def process_pdb_structure(
     # Collect all site residue sets for this PDB
     all_site_residues = []
     for s_rec in site_records:
-        s_keys = get_site_residue_keys(s_rec.get("site", {}))
+        s_keys = get_site_residue_keys(s_rec.get("site", {}), s_rec.get("info", {}))
         if s_keys:
             all_site_residues.append(s_keys)
 
@@ -92,13 +113,21 @@ def process_pdb_structure(
         pkt = Pocket(str(cif_path))
         feats = pkt.feats
 
-        # Extract contacting residues in pocket
-        pocket_res_set = set()
+        # Extract contacting residues in pocket matching auth_seq_id
+        pocket_res_set_auth = set()
+        pocket_res_set_label = set()
+        nres = 0
         if hasattr(pkt, "residues") and not pkt.residues.empty:
-            for _, r in pkt.residues.iterrows():
-                cid = r.get("label_asym_id") or r.get("auth_asym_id", "")
-                seqid = r.get("label_seq_id") or r.get("auth_seq_id", "")
-                pocket_res_set.add((str(cid), str(seqid)))
+            res = pkt.residues
+            nres = len(res)
+            c_label = res["label_asym_id"].astype(str)
+            c_auth = res.get("auth_asym_id", res["label_asym_id"]).astype(str)
+            s_auth = res.get("auth_seq_id", res["label_seq_id"]).astype(str)
+            s_label = res["label_seq_id"].astype(str)
+            for cl, ca, sa, sl in zip(c_label, c_auth, s_auth, s_label):
+                pocket_res_set_auth.add((cl, sa))
+                pocket_res_set_auth.add((ca, sa))
+                pocket_res_set_label.add((cl, sl))
 
         # Compute max overlap against all annotated sites for this PDB
         max_site_in_pocket = 0.0
@@ -107,9 +136,12 @@ def process_pdb_structure(
         for s_keys in all_site_residues:
             if not s_keys:
                 continue
-            common = pocket_res_set.intersection(s_keys)
+            common_auth = pocket_res_set_auth.intersection(s_keys)
+            common_label = pocket_res_set_label.intersection(s_keys)
+            common = common_auth if len(common_auth) >= len(common_label) else common_label
+
             site_in_pkt = len(common) / len(s_keys) if len(s_keys) > 0 else 0.0
-            pkt_in_site = len(common) / len(pocket_res_set) if len(pocket_res_set) > 0 else 0.0
+            pkt_in_site = len(common) / nres if nres > 0 else 0.0
             if site_in_pkt > max_site_in_pocket:
                 max_site_in_pocket = site_in_pkt
             if pkt_in_site > max_pocket_in_site:
@@ -121,7 +153,7 @@ def process_pdb_structure(
         row_data = {
             "Pockets_pdb": entry_id,
             "Pockets_pocket": pname,
-            "Pockets_nres": len(pocket_res_set),
+            "Pockets_nres": nres,
             "site_in_pocket": max_site_in_pocket,
             "pocket_in_site": max_pocket_in_site,
             "Label_label": label,
@@ -144,6 +176,8 @@ def prepare_dataset(
     label_threshold: float = 0.65,
     workers: int = 6,
     output_filename: str = "pockets_dataset.parquet",
+    use_minimal_chains: bool = True,
+    outlier_filter: bool = False,
 ) -> pd.DataFrame:
     """
     Main entrypoint to generate training data directly from database.db.
@@ -155,8 +189,10 @@ def prepare_dataset(
         resolved_db = Path("database.db")
 
     out_path = Path(output_dir)
-    cache_dir = out_path / "cache"
+    cache_dir = out_path / ("cache_minimal" if use_minimal_chains else "cache")
     cache_dir.mkdir(parents=True, exist_ok=True)
+    work_dir = out_path / ("work_minimal" if use_minimal_chains else "work")
+    work_dir.mkdir(parents=True, exist_ok=True)
 
     # Load PDB list from file if provided
     if pdb_file:
@@ -201,7 +237,7 @@ def prepare_dataset(
     conn.close()
 
     logger.info(
-        f"Preparing dataset for {len(all_entries)} structures from {db_path} using {workers} workers..."
+        f"Preparing dataset for {len(all_entries)} structures from {db_path} using {workers} workers (minimal_chains={use_minimal_chains})..."
     )
 
     def _process_entry(entry_id: str) -> Optional[pd.DataFrame]:
@@ -217,8 +253,9 @@ def prepare_dataset(
             df_entry = process_pdb_structure(
                 entry_id=entry_id,
                 site_records=site_records,
-                work_dir=out_path / "work",
+                work_dir=work_dir,
                 label_threshold=label_threshold,
+                use_minimal_chains=use_minimal_chains,
             )
             if not df_entry.empty:
                 df_entry.to_parquet(cache_file, index=False)
@@ -252,6 +289,17 @@ def prepare_dataset(
     full_dataset = full_dataset.sort_values(["Pockets_pdb", "Pockets_pocket"]).reset_index(
         drop=True
     )
+
+    if outlier_filter and len(full_dataset) > 1:
+        std_val = full_dataset["Pockets_nres"].std()
+        if std_val > 0:
+            z = (full_dataset["Pockets_nres"] - full_dataset["Pockets_nres"].mean()).abs() / std_val
+            before_len = len(full_dataset)
+            full_dataset = full_dataset[z < 3].reset_index(drop=True)
+            logger.info(
+                f"Applied nres outlier filter (|z| < 3): {before_len} -> {len(full_dataset)} pockets remaining."
+            )
+
     full_dataset.to_parquet(out_path / output_filename, index=False)
 
     pos_count = int((full_dataset["Label_label"] == 1).sum())

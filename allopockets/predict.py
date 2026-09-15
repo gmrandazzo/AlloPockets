@@ -367,8 +367,9 @@ def get_cif(pdb_id=None, file=None, name=None, path=path):
         pdb = Pdb(pdb_id.lower())
 
         # Save original and uncompressed cif
+        cif_content = pdb.cif._cif_content
         with open(f"{path}/{pdb.entry_id}_updated.cif.gz", "wb") as f:
-            f.write(pdb.cif._cif_content)
+            f.write(cif_content)
         # with open(f"{path}/{pdb.entry_id}_updated.cif", "w") as f:
         #     f.write(pdb.cif.text)
     elif file is not None:
