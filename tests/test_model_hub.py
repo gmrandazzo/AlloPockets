@@ -54,8 +54,8 @@ def test_get_cache_dir_xdg_env(monkeypatch):
 
 def test_list_available_models():
     models = list_available_models()
-    assert "minimal_lgbm" in models
-    assert "minimal_xgboost" in models
+    for name in AVAILABLE_MODELS:
+        assert name in models
 
     lgbm_meta = models["minimal_lgbm"]
     assert "description" in lgbm_meta

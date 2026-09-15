@@ -28,7 +28,7 @@ from pathlib import Path
 import shutil
 import tarfile
 import tempfile
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Optional, Union
 import requests
 from tqdm import tqdm
 
@@ -128,20 +128,32 @@ def download_model(
             if resp.status_code == 200:
                 tar_dest = tmp_path / filename
                 total_size = int(resp.headers.get("content-length", 0))
-                with open(tar_dest, "wb") as f, tqdm(
-                    desc=filename,
-                    total=total_size,
-                    unit="iB",
-                    unit_scale=True,
-                    unit_divisor=1024,
-                ) as bar:
+                with (
+                    open(tar_dest, "wb") as f,
+                    tqdm(
+                        desc=filename,
+                        total=total_size,
+                        unit="iB",
+                        unit_scale=True,
+                        unit_divisor=1024,
+                    ) as bar,
+                ):
                     for chunk in resp.iter_content(chunk_size=8192):
                         size = f.write(chunk)
                         bar.update(size)
 
-                # Extract tarball
+                # Extract tarball safely
                 with tarfile.open(tar_dest, "r:gz") as tar:
-                    tar.extractall(path=tmp_path)
+                    if hasattr(tarfile, "data_filter"):
+                        tar.extractall(path=tmp_path, filter="data")  # nosec B202
+                    else:
+                        for member in tar.getmembers():
+                            target_file = (tmp_path / member.name).resolve()
+                            if not target_file.is_relative_to(tmp_path.resolve()):
+                                raise RuntimeError(
+                                    f"Unsafe path traversal in tar member: {member.name}"
+                                )
+                        tar.extractall(path=tmp_path)  # nosec B202
                 download_success = True
             else:
                 logger.info(
@@ -153,7 +165,9 @@ def download_model(
         # Attempt 2: GitHub Raw CDN fallback
         if not download_success:
             logger.info(f"Downloading model files directly from branch '{branch}' CDN...")
-            raw_base = f"https://raw.githubusercontent.com/{GITHUB_REPO}/{branch}/models/{model_name}"
+            raw_base = (
+                f"https://raw.githubusercontent.com/{GITHUB_REPO}/{branch}/models/{model_name}"
+            )
             raw_files = [
                 "model.joblib",
                 "features.json",
