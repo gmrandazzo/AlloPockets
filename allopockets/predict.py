@@ -22,6 +22,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import logging
 import os, tempfile, re, subprocess, shutil
 from pathlib import Path
+
 # Inject local binaries to PATH
 bin_dir = Path.home() / ".allopockets" / "bin"
 if bin_dir.exists():
@@ -559,13 +560,24 @@ def get_pockets(clean_pdb, path=path):
         shutil.copy(clean_pdb.filename, f"{path}/{clean_pdb.entry_id}/")
         try:
             subprocess.run(
-                ["fpocket", "-m", "3", "-M", "6", "-i", "35", "--file", f"{clean_pdb.entry_id}.cif"],
+                [
+                    "fpocket",
+                    "-m",
+                    "3",
+                    "-M",
+                    "6",
+                    "-i",
+                    "35",
+                    "--file",
+                    f"{clean_pdb.entry_id}.cif",
+                ],
                 cwd=f"{path}/{clean_pdb.entry_id}",
                 check=False,
             )
         except FileNotFoundError:
-            raise RuntimeError("fpocket is not installed. Please run 'allopockets-install-deps' or install fpocket manually.")
-
+            raise RuntimeError(
+                "fpocket is not installed. Please run 'allopockets-install-deps' or install fpocket manually."
+            )
 
     return pd.DataFrame(
         (
@@ -783,7 +795,9 @@ class HHBlitsF_msa(HHBlitsF):
             try:
                 subprocess.run(["hhmake", "-i", fn("a3m"), "-o", fn("hhm"), "-v", "0"], check=False)
             except FileNotFoundError:
-                raise RuntimeError("hhmake (hh-suite) is not installed. Please run 'allopockets-install-deps' or install hhsuite manually.")
+                raise RuntimeError(
+                    "hhmake (hh-suite) is not installed. Please run 'allopockets-install-deps' or install hhsuite manually."
+                )
 
         with open(fn("hhm"), "r") as fp:
             data = []
@@ -924,7 +938,9 @@ class DSSPF:  # type: ignore[no-redef]
                         capture_output=True,
                     )
                 except FileNotFoundError:
-                    raise RuntimeError("mkdssp (dssp) is not installed. Please run 'allopockets-install-deps' or install dssp manually.")
+                    raise RuntimeError(
+                        "mkdssp (dssp) is not installed. Please run 'allopockets-install-deps' or install dssp manually."
+                    )
                 chains_dfs.append(
                     self._get_chain_df(Cif(self._cif._name, f"{tmpdir}/out.cif").cif.data)
                 )
