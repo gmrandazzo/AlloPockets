@@ -28,6 +28,21 @@ Given a protein structure (PDB or mmCIF), AlloPockets detects candidate cavities
 pip install allopockets
 ```
 
+### External C/C++ Bioinformatics Dependencies
+AlloPockets relies on three standard bioinformatics binaries to extract features from structures:
+- `fpocket` (for pocket detection)
+- `dssp` / `mkdssp` (for secondary structure and relative ASA)
+- `hhsuite` / `hhmake` (for generating HMM profiles)
+
+If you already have these in your system `$PATH` (e.g. via Conda), AlloPockets will automatically detect and use them!
+
+If you do **not** use Conda (e.g. on macOS or a fresh Linux install) and don't want to compile them manually, AlloPockets includes an automated installer that will fetch and compile them into a local hidden directory (`~/.allopockets/bin`) without requiring `sudo`:
+
+```bash
+allopockets-install-deps
+```
+*(Note: `fpocket` and `hhsuite` will be compiled automatically. For `dssp`, the script will guide you to install it via your OS package manager like Homebrew or apt-get).*
+
 ### Install in an Isolated Virtual Environment (Development)
 ```bash
 python3 -m venv .venv

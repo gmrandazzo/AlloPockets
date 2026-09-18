@@ -33,8 +33,8 @@ def install_fpocket(bin_dir):
         return
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        print("Cloning fpocket...")
-        subprocess.run(["git", "clone", "https://github.com/Discngine/fpocket.git"], cwd=tmpdir, check=True)
+        print("Cloning fpocket (v4.2.3)...")
+        subprocess.run(["git", "clone", "--branch", "4.2.3", "https://github.com/Discngine/fpocket.git"], cwd=tmpdir, check=True)
         fpocket_dir = Path(tmpdir) / "fpocket"
         print("Compiling fpocket...")
         subprocess.run(["make"], cwd=fpocket_dir, check=True)
@@ -52,8 +52,8 @@ def install_hhsuite(bin_dir):
         return
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        print("Cloning hh-suite...")
-        subprocess.run(["git", "clone", "https://github.com/soedinglab/hh-suite.git"], cwd=tmpdir, check=True)
+        print("Cloning hh-suite (v3.3.0)...")
+        subprocess.run(["git", "clone", "--branch", "v3.3.0", "https://github.com/soedinglab/hh-suite.git"], cwd=tmpdir, check=True)
         hh_dir = Path(tmpdir) / "hh-suite"
         build_dir = hh_dir / "build"
         build_dir.mkdir()
