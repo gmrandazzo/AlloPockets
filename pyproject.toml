@@ -4,12 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "allopockets"
-version = "1.0.0"
+version = "1.0.1"
 description = "Machine learning allosteric pocket prediction, pathway tracing, and 3D visualization"
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "GPL-3.0" }
-authors = [{ name = "AlloPockets Authors" }]
+authors = [
+    { name = "Francho Nerín Fonz", email = "fnerin@bioacademy.gr" },
+    { name = "Giuseppe Marco Randazzo", email = "gmrandazzo@gmail.com" },
+]
 classifiers = [
     "Programming Language :: Python :: 3",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
@@ -60,6 +63,9 @@ allopockets-inspect-3d = "allopockets.cli:inspect_3d_cli"
 
 [tool.setuptools.packages.find]
 include = ["allopockets*"]
+
+[tool.setuptools.package-data]
+"*" = ["*.json", "py.typed"]
 
 [tool.black]
 line-length = 100

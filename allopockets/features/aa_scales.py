@@ -17,10 +17,16 @@ from pathlib import Path
 from typing import Any, Dict, List
 import pandas as pd
 
-_DATA_PATH = Path(__file__).resolve().parent / "aa_scales_data.json"
+try:
+    from importlib.resources import files
 
-with open(_DATA_PATH, "r") as _f:
-    _SCALES_DATA = json.load(_f)
+    _data_file = files("allopockets.features").joinpath("aa_scales_data.json")
+    with _data_file.open("r", encoding="utf-8") as _f:
+        _SCALES_DATA = json.load(_f)
+except Exception:
+    _DATA_PATH = Path(__file__).resolve().parent / "aa_scales_data.json"
+    with open(_DATA_PATH, "r", encoding="utf-8") as _f:
+        _SCALES_DATA = json.load(_f)
 
 MEILER_DATA: Dict[str, Dict[str, float]] = _SCALES_DATA["meiler"]
 EXPASY_DATA: Dict[str, Dict[str, float]] = _SCALES_DATA["expasy"]

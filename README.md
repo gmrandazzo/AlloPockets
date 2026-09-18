@@ -23,14 +23,16 @@ Given a protein structure (PDB or mmCIF), AlloPockets detects candidate cavities
 
 ## Installation
 
-### 1. Create and Activate an Isolated Virtual Environment
+### Standard Installation from PyPI
+```bash
+pip install allopockets
+```
+
+### Install in an Isolated Virtual Environment (Development)
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-```
 
-### 2. Install AlloPockets in Editable Mode
-```bash
 # Core package + test dependencies
 pip install -e ".[dev]"
 
@@ -241,15 +243,22 @@ By default, ColabFold's MSA server is used for sequence profile extraction. For 
 
 ---
 
+## Authors & Contributors
+
+- **Francho Nerín Fonz** (<fnerin@bioacademy.gr>) – Original author and methodology design ([frannerin/AlloPockets](https://github.com/frannerin/AlloPockets))
+- **Giuseppe Marco Randazzo** (<gmrandazzo@gmail.com>) – Modernization, packaging, model distribution hub, CLI suite, and maintainer ([gmrandazzo/AlloPockets](https://github.com/gmrandazzo/AlloPockets))
+
+---
+
 ## Cite
 
 If you use AlloPockets, please cite:
 
 ```bibtex
 @software{AlloPockets,
-  title  = {AlloPockets},
-  author = {AlloPockets authors},
-  url    = {https://github.com/frannerin/AlloPockets},
+  title  = {AlloPockets: Machine Learning Allosteric Pocket Prediction, Pathway Tracing & 3D Visualization},
+  author = {Ner{\'\i}n Fonz, Francho and Randazzo, Giuseppe Marco},
+  url    = {https://github.com/gmrandazzo/AlloPockets},
   year   = {2026}
 }
 ```
