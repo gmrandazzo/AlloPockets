@@ -80,7 +80,14 @@ def install_hhsuite(bin_dir):
         release_dir = hh_dir / "release"
         print("Compiling hh-suite...")
         subprocess.run(
-            ["cmake", f"-DCMAKE_INSTALL_PREFIX={release_dir}", ".."], cwd=build_dir, check=True
+            [
+                "cmake",
+                f"-DCMAKE_INSTALL_PREFIX={release_dir}",
+                "-DCMAKE_POLICY_VERSION_MINIMUM=3.5",
+                "..",
+            ],
+            cwd=build_dir,
+            check=True,
         )
         subprocess.run(["make", "-j", "4"], cwd=build_dir, check=True)
         subprocess.run(["make", "install"], cwd=build_dir, check=True)
