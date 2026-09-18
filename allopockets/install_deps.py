@@ -43,7 +43,16 @@ def install_fpocket(bin_dir):
         )
         fpocket_dir = Path(tmpdir) / "fpocket"
         print("Compiling fpocket...")
-        subprocess.run(["make"], cwd=fpocket_dir, check=True)
+        make_args = ["make"]
+        if sys.platform == "darwin":
+            import platform
+
+            machine = platform.machine().lower()
+            if machine == "arm64":
+                make_args.append("ARCH=MACOSXARM64")
+            else:
+                make_args.append("ARCH=MACOSXX86_64")
+        subprocess.run(make_args, cwd=fpocket_dir, check=True)
         bin_path = fpocket_dir / "bin" / "fpocket"
         if bin_path.exists():
             shutil.copy(bin_path, bin_dir / "fpocket")
