@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "allopockets"
-version = "1.0.3"
+version = "1.0.5"
 description = "Machine learning allosteric pocket prediction, pathway tracing, and 3D visualization"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -34,6 +34,8 @@ dependencies = [
     "biotite>=1.0",
     "pyarrow>=14.0.0",
     "lightgbm>=4.0.0",
+    "openmm>=8.0.0",
+    "pdbfixer>=1.9",
 ]
 
 [project.optional-dependencies]
@@ -60,6 +62,7 @@ allopockets-predict = "allopockets.cli:predict_cli"
 allopockets-prepare-data = "allopockets.cli:prepare_data_cli"
 allopockets-train = "allopockets.cli:train_cli"
 allopockets-inspect-3d = "allopockets.cli:inspect_3d_cli"
+allopockets-install-deps = "allopockets.cli:install_deps_cli"
 
 [tool.setuptools.packages.find]
 include = ["allopockets*"]

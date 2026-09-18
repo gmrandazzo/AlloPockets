@@ -21,6 +21,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
 import os, tempfile, re, subprocess, shutil
+from pathlib import Path
+# Inject local binaries to PATH
+bin_dir = Path.home() / ".allopockets" / "bin"
+if bin_dir.exists():
+    os.environ["PATH"] = f"{bin_dir}:{os.environ.get('PATH', '')}"
 from typing import Optional, Union, List, Dict, Tuple
 import pandas as pd
 from tqdm import tqdm
@@ -552,11 +557,15 @@ def get_pockets(clean_pdb, path=path):
     if not os.path.isdir(f"{path}/{clean_pdb.entry_id}/{clean_pdb.entry_id}_out"):
         os.makedirs(f"{path}/{clean_pdb.entry_id}", exist_ok=True)
         shutil.copy(clean_pdb.filename, f"{path}/{clean_pdb.entry_id}/")
-        subprocess.run(
-            ["fpocket", "-m", "3", "-M", "6", "-i", "35", "--file", f"{clean_pdb.entry_id}.cif"],
-            cwd=f"{path}/{clean_pdb.entry_id}",
-            check=False,
-        )
+        try:
+            subprocess.run(
+                ["fpocket", "-m", "3", "-M", "6", "-i", "35", "--file", f"{clean_pdb.entry_id}.cif"],
+                cwd=f"{path}/{clean_pdb.entry_id}",
+                check=False,
+            )
+        except FileNotFoundError:
+            raise RuntimeError("fpocket is not installed. Please run 'allopockets-install-deps' or install fpocket manually.")
+
 
     return pd.DataFrame(
         (
@@ -771,7 +780,10 @@ class HHBlitsF_msa(HHBlitsF):
                 shutil.copy(f"{tmpdir}/{jobname}_all/uniref.a3m", fn("a3m"))
 
         if not os.path.isfile(fn("hhm")):
-            subprocess.run(["hhmake", "-i", fn("a3m"), "-o", fn("hhm"), "-v", "0"], check=False)
+            try:
+                subprocess.run(["hhmake", "-i", fn("a3m"), "-o", fn("hhm"), "-v", "0"], check=False)
+            except FileNotFoundError:
+                raise RuntimeError("hhmake (hh-suite) is not installed. Please run 'allopockets-install-deps' or install hhsuite manually.")
 
         with open(fn("hhm"), "r") as fp:
             data = []
@@ -906,10 +918,13 @@ class DSSPF:  # type: ignore[no-redef]
                     }
                 ) as f,
             ):
-                subprocess.run(
-                    [f"mkdssp", "--calculate-accessibility", f.name, f"{tmpdir}/out.cif"],
-                    capture_output=True,
-                )
+                try:
+                    subprocess.run(
+                        [f"mkdssp", "--calculate-accessibility", f.name, f"{tmpdir}/out.cif"],
+                        capture_output=True,
+                    )
+                except FileNotFoundError:
+                    raise RuntimeError("mkdssp (dssp) is not installed. Please run 'allopockets-install-deps' or install dssp manually.")
                 chains_dfs.append(
                     self._get_chain_df(Cif(self._cif._name, f"{tmpdir}/out.cif").cif.data)
                 )

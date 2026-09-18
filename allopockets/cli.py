@@ -368,5 +368,13 @@ main.add_command(inspect_3d_cli, name="inspect-3d")
 main.add_command(download_model_cli, name="download-model")
 main.add_command(models_cli, name="models")
 
+@click.command("install-deps")
+def install_deps_cli():
+    """Download and compile external bioinformatics dependencies (fpocket, hh-suite, dssp)."""
+    from allopockets.install_deps import run_installation
+    run_installation()
+
+main.add_command(install_deps_cli)
+
 if __name__ == "__main__":
     main()
