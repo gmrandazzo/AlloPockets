@@ -56,13 +56,13 @@ class PDBCif:
 
         if self._cif_content is None:
             # Download the SIFTS-standardized .cif.gz file from PDBe
-            headers = {'User-Agent': 'AlloPockets/1.0 (https://github.com/fnerin/AlloPockets)'}
+            headers = {"User-Agent": "AlloPockets/1.0 (https://github.com/fnerin/AlloPockets)"}
             response = requests.get(
                 f"https://www.ebi.ac.uk/pdbe/entry-files/{self._name.lower()}_updated.cif.gz",
                 timeout=30,
-                headers=headers
+                headers=headers,
             )
-            
+
             if response.ok and response.content.startswith(b"\x1f\x8b"):
                 self._cif_content = response.content
             else:
@@ -70,12 +70,14 @@ class PDBCif:
                 response = requests.get(
                     f"https://files.rcsb.org/download/{self._name.lower()}.cif.gz",
                     timeout=30,
-                    headers=headers
+                    headers=headers,
                 )
                 if response.ok and response.content.startswith(b"\x1f\x8b"):
                     self._cif_content = response.content
                 else:
-                    raise RuntimeError(f"Failed to download valid PDB {self._name} from both PDBe and RCSB.")
+                    raise RuntimeError(
+                        f"Failed to download valid PDB {self._name} from both PDBe and RCSB."
+                    )
 
     @cached_property
     def data(self):

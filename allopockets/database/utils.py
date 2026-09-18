@@ -282,7 +282,7 @@ class PDBCif(Cif):
                 f.write(self.text)
                 f.flush()
                 parsed = MMCIF2Dict().parse(f.name)
-                
+
         if self._name in parsed:
             return parsed[self._name]
         for k, v in parsed.items():
