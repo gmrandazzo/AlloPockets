@@ -47,26 +47,50 @@ class PDBCif:
             if c and os.path.isfile(c) and c.endswith(".cif.gz") and os.path.getsize(c) > 0:
                 try:
                     with open(c, "rb") as f:
-                        self._cif_content = f.read()
-                    break
+                        content = f.read()
+                        if content.startswith(b"\x1f\x8b"):
+                            self._cif_content = content
+                            break
                 except Exception:
                     pass
 
         if self._cif_content is None:
             # Download the SIFTS-standardized .cif.gz file from PDBe
+            headers = {'User-Agent': 'AlloPockets/1.0 (https://github.com/fnerin/AlloPockets)'}
             response = requests.get(
                 f"https://www.ebi.ac.uk/pdbe/entry-files/{self._name.lower()}_updated.cif.gz",
                 timeout=30,
+                headers=headers
             )
-            assert (
-                response.status_code != 404
-            ), f"PDB not found (status_code {response.status_code})"
-            self._cif_content = response.content
+            
+            if response.ok and response.content.startswith(b"\x1f\x8b"):
+                self._cif_content = response.content
+            else:
+                # Fallback to RCSB
+                response = requests.get(
+                    f"https://files.rcsb.org/download/{self._name.lower()}.cif.gz",
+                    timeout=30,
+                    headers=headers
+                )
+                if response.ok and response.content.startswith(b"\x1f\x8b"):
+                    self._cif_content = response.content
+                else:
+                    raise RuntimeError(f"Failed to download valid PDB {self._name} from both PDBe and RCSB.")
 
     @cached_property
     def data(self):
         with self.ciff() as f:
-            data = MMCIF2Dict().parse(f.name)[self._name]
+            parsed = MMCIF2Dict().parse(f.name)
+            if self._name in parsed:
+                data = parsed[self._name]
+            else:
+                # Case-insensitive fallback
+                for k, v in parsed.items():
+                    if k.lower() == self._name.lower():
+                        data = v
+                        break
+                else:
+                    raise KeyError(f"Block '{self._name}' not found in downloaded mmCIF.")
         return data
 
     @contextmanager
@@ -78,6 +102,7 @@ class PDBCif:
             file = tempfile.NamedTemporaryFile("wb+", suffix=".cif.gz")
             content = self._cif_content or b""
             file.write(content)
+            file.flush()
             yield file
         finally:
             if file:

@@ -39,7 +39,14 @@ class CifFile(BaseCifFile):
 
     @cached_property
     def data(self) -> dict:
-        return MMCIF2Dict().parse(self.filename)[self._name]
+        parsed = MMCIF2Dict().parse(self.filename)
+        if self._name in parsed:
+            return parsed[self._name]
+        # Case-insensitive fallback
+        for k, v in parsed.items():
+            if k.lower() == self._name.lower():
+                return v
+        raise KeyError(f"Block '{self._name}' not found in {self.filename}")
 
 
 class Cif:

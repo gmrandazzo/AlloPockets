@@ -276,11 +276,19 @@ class PDBCif(Cif):
             print("getting pdbcif data")
         # If the file exist, parse it; else write the contents of .text to a fake file for applying the same parser
         if hasattr(self, "filename"):
-            return MMCIF2Dict().parse(self.filename)[self._name]
+            parsed = MMCIF2Dict().parse(self.filename)
         else:
             with tempfile.NamedTemporaryFile("w+", suffix=".cif") as f:
                 f.write(self.text)
-                return MMCIF2Dict().parse(f.name)[self._name]
+                f.flush()
+                parsed = MMCIF2Dict().parse(f.name)
+                
+        if self._name in parsed:
+            return parsed[self._name]
+        for k, v in parsed.items():
+            if k.lower() == self._name.lower():
+                return v
+        raise KeyError(f"Block '{self._name}' not found in mmCIF.")
 
     @staticmethod
     def _download_SIFTS_cif(entry_id):
