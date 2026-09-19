@@ -100,6 +100,25 @@ def install_hhsuite(bin_dir):
             print("Failed to find compiled hhmake binary.")
 
 
+def install_freesasa(bin_dir):
+    print(">>> Checking freesasa...")
+    if shutil.which("freesasa", path=str(bin_dir)) or shutil.which("freesasa"):
+        print("freesasa is already installed.")
+        return
+
+    print("freesasa is missing. It is a required C binary.")
+    if sys.platform == "darwin":
+        print("Attempting to install freesasa via Homebrew...")
+        if shutil.which("brew"):
+            subprocess.run(["brew", "install", "freesasa"], check=False)
+        else:
+            print("Homebrew is not installed. Please install freesasa manually (e.g. from source).")
+    elif sys.platform.startswith("linux"):
+        print("On Linux, please install freesasa via your package manager:")
+        print("  Ubuntu/Debian: sudo apt-get install freesasa")
+        print("  CentOS/RHEL: sudo yum install freesasa")
+
+
 def install_dssp(bin_dir):
     print(">>> Checking dssp (mkdssp)...")
     if shutil.which("mkdssp", path=str(bin_dir)) or shutil.which("mkdssp") or shutil.which("dssp"):
@@ -128,6 +147,7 @@ def run_installation():
         install_fpocket(bin_dir)
         install_hhsuite(bin_dir)
         install_dssp(bin_dir)
+        install_freesasa(bin_dir)
     except subprocess.CalledProcessError as e:
         print(f"\nError during compilation/installation: {e}")
         sys.exit(1)
