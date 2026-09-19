@@ -28,6 +28,28 @@ def check_prerequisites():
         sys.exit(1)
 
 
+def install_pyrosetta():
+    print(">>> Checking PyRosetta...")
+    try:
+        import pyrosetta  # noqa: F401
+
+        print("PyRosetta is already installed.")
+    except ImportError:
+        print("Installing pyrosetta-installer and PyRosetta (this may take a few minutes)...")
+        import subprocess
+        import sys
+
+        subprocess.run([sys.executable, "-m", "pip", "install", "pyrosetta-installer"], check=True)
+        subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                "import pyrosetta_installer; pyrosetta_installer.install_pyrosetta()",
+            ],
+            check=True,
+        )
+
+
 def install_fpocket(bin_dir):
     print(">>> Installing fpocket...")
     if shutil.which("fpocket", path=str(bin_dir)) or shutil.which("fpocket"):
@@ -145,6 +167,7 @@ def run_installation():
     bin_dir = get_bin_dir()
 
     try:
+        install_pyrosetta()
         install_fpocket(bin_dir)
         install_hhsuite(bin_dir)
         install_dssp(bin_dir)
