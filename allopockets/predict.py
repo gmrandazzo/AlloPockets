@@ -933,10 +933,14 @@ class DSSPF:  # type: ignore[no-redef]
                 ) as f,
             ):
                 try:
-                    subprocess.run(
+                    result = subprocess.run(
                         [f"mkdssp", "--calculate-accessibility", f.name, f"{tmpdir}/out.cif"],
                         capture_output=True,
                     )
+                    if result.returncode != 0:
+                        raise RuntimeError(
+                            f"mkdssp failed with code {result.returncode}: {result.stderr.decode()}"
+                        )
                 except FileNotFoundError:
                     raise RuntimeError(
                         "mkdssp (dssp) is not installed. Please run 'allopockets-install-deps' or install dssp manually."
