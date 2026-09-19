@@ -932,18 +932,20 @@ class DSSPF:  # type: ignore[no-redef]
                     }
                 ) as f,
             ):
-                try:
-                    result = subprocess.run(
-                        [f"mkdssp", "--calculate-accessibility", f.name, f"{tmpdir}/out.cif"],
-                        capture_output=True,
-                    )
-                    if result.returncode != 0:
-                        raise RuntimeError(
-                            f"mkdssp failed with code {result.returncode}: {result.stderr.decode()}"
-                        )
-                except FileNotFoundError:
+                import shutil
+
+                dssp_bin = shutil.which("mkdssp") or shutil.which("dssp")
+                if not dssp_bin:
                     raise RuntimeError(
                         "mkdssp (dssp) is not installed. Please run 'allopockets-install-deps' or install dssp manually."
+                    )
+                result = subprocess.run(
+                    [dssp_bin, "--calculate-accessibility", f.name, f"{tmpdir}/out.cif"],
+                    capture_output=True,
+                )
+                if result.returncode != 0:
+                    raise RuntimeError(
+                        f"dssp failed with code {result.returncode}: {result.stderr.decode()}"
                     )
                 chains_dfs.append(
                     self._get_chain_df(Cif(self._cif._name, f"{tmpdir}/out.cif").cif.data)
