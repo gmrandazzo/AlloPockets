@@ -159,6 +159,10 @@ class BiopythonF:
         ).drop(["dssp index", "amino acid"], axis=1)
 
     def _melodia(self):
+        if melodia is None:
+            raise ImportError(
+                "melodia-py is missing or failed to import (often due to a missing 'nglview' dependency). Please run 'pip install melodia-py nglview'."
+            )
         records = []
         struc = self.struc
         geom = melodia.geometry_dict_from_structure(struc)
