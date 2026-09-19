@@ -161,7 +161,7 @@ class BiopythonF:
     def _melodia(self):
         if melodia is None:
             raise ImportError(
-                "melodia-py is missing or failed to import (often due to a missing 'nglview' dependency). Please run 'pip install melodia-py nglview'."
+                "melodia-py is missing or failed to import (often due to missing 'nglview' or 'numba' dependencies). Please run 'pip install melodia-py nglview numba'."
             )
         records = []
         struc = self.struc
