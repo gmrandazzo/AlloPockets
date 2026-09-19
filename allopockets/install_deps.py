@@ -129,6 +129,7 @@ def install_dssp(bin_dir):
     if sys.platform == "darwin":
         print("Attempting to install dssp via Homebrew...")
         if shutil.which("brew"):
+            subprocess.run(["brew", "tap", "brewsci/bio"], check=False)
             subprocess.run(["brew", "install", "dssp"], check=False)
         else:
             print("Homebrew is not installed. Please install dssp manually.")
