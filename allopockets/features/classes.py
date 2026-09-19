@@ -272,10 +272,15 @@ class FreeSASAF:
     features = ["freesasa"]
 
     def _freesasa(self):
-        result = subprocess.run(
-            [f"freesasa", "--depth=residue", "--cif", "--format=json", self._cif.filename],
-            capture_output=True,
-        )
+        try:
+            result = subprocess.run(
+                [f"freesasa", "--depth=residue", "--cif", "--format=json", self._cif.filename],
+                capture_output=True,
+            )
+        except FileNotFoundError:
+            raise RuntimeError(
+                "freesasa is not installed. Please install it (e.g. 'brew install freesasa' on Mac or 'sudo apt-get install freesasa' on Linux)."
+            )
         return json.loads(result.stdout.decode().strip())
 
     def freesasa(self):

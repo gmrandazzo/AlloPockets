@@ -50,7 +50,10 @@ def calculate_features(pdb, fc, file, structures_path, original_cifs_path):
                 results.append(
                     {"pdb": pdb, "feature": feat, "result": result, "time": time.time() - start}
                 )
-            except:
+            except (ImportError, FileNotFoundError, RuntimeError) as e:
+                raise e
+            except Exception:
+                # If feature calculation fails, it returns False later
                 break
 
         # If not all features, return False to be handled by the function calling calculate_features
