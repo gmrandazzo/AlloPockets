@@ -328,10 +328,18 @@ try:
     from pyrosetta.rosetta.protocols.minimization_packing import PackRotamersMover
     from pyrosetta import Pose
 
-    init("-mute core.pack basic core.scoring -ignore_zero_occupancy false")
     HAS_PYROSETTA = True
 except ImportError:
     HAS_PYROSETTA = False
+
+_pyrosetta_initialized = False
+
+
+def _init_pyrosetta():
+    global _pyrosetta_initialized
+    if HAS_PYROSETTA and not _pyrosetta_initialized:
+        init("-mute core.pack basic core.scoring -ignore_zero_occupancy false")
+        _pyrosetta_initialized = True
 
 
 # In[22]:
@@ -340,6 +348,7 @@ except ImportError:
 class PyRosettaF:
     def __init__(self, cif):
         self._cif = cif
+        _init_pyrosetta()
         if not HAS_PYROSETTA:
             print(
                 "WARNING: PyRosetta is not installed. Skipping ddG calculations (features will be NaN)."

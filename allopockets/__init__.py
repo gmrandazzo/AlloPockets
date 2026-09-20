@@ -21,7 +21,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 AlloPockets: Allosteric Pocket Prediction, Pathway Tracing, and 3D Visualization.
 """
 
-__version__ = "1.0.0"
+try:
+    from importlib.metadata import version
+
+    __version__ = version("allopockets")
+except Exception:
+    __version__ = "unknown"
+
 
 from allopockets.pockets import Pocket, run_fpocket, get_pockets_info
 from allopockets.ml import (
