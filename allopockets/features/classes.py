@@ -394,14 +394,15 @@ class PyRosettaF:
         for i, res in enumerate(pose.residues, 1):
             aa1 = res.name1()
             resnum = res.seqpos()
-            target_aa = "A" if aa1 != "A" else "G"
+            aa3 = res.name3()
+            target_aa = "ALA" if aa1 != "A" else "GLY"
 
             # Mutate to target AA and repack
             mutated_pose = self._mutate_and_repack(pose, resnum, target_aa, sfxn)
             score_mut = sfxn.score(mutated_pose)
 
             # Re-repack native AA to maintain fair baseline
-            native_pose = self._mutate_and_repack(pose, resnum, aa1, sfxn)
+            native_pose = self._mutate_and_repack(pose, resnum, aa3, sfxn)
             score_nat = sfxn.score(native_pose)
 
             ddG = score_mut - score_nat
