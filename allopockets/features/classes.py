@@ -320,14 +320,17 @@ class FreeSASAF:
 
 try:
     from pyrosetta import init, pose_from_pdb, get_score_function
+    from pyrosetta.rosetta.core.pack.task import TaskFactory
+    from pyrosetta.rosetta.core.chemical import aa_from_oneletter_code
+    from pyrosetta.rosetta.utility import vector1_bool
+    from pyrosetta.rosetta.protocols.simple_moves import MutateResidue
+    from pyrosetta.rosetta.protocols.minimization_packing import PackRotamersMover
+    from pyrosetta import Pose
 
     init("-mute core.pack basic core.scoring -ignore_zero_occupancy false")
-    from .external import predict_ddG  # script in-folder from pyrosetta tutorial
+    HAS_PYROSETTA = True
 except ImportError:
-    init = None
-    pose_from_pdb = None
-    get_score_function = None
-    predict_ddG = None
+    HAS_PYROSETTA = False
 
 
 # In[22]:
@@ -336,42 +339,72 @@ except ImportError:
 class PyRosettaF:
     def __init__(self, cif):
         self._cif = cif
-        if pose_from_pdb is None:
-            raise ImportError("pyrosetta is required for PyRosettaF. Please install PyRosetta.")
+        if not HAS_PYROSETTA:
+            print(
+                "WARNING: PyRosetta is not installed. Skipping ddG calculations (features will be NaN)."
+            )
 
     features = ["ddG"]
 
     @cached_property
     def _pose(self):
+        if not HAS_PYROSETTA:
+            return None
         return pose_from_pdb(self._cif.filename)
 
-    def _ddG(self):
-        # Create a energy function
-        sfxn = get_score_function(True)
+    def _mutate_and_repack(self, pose, resnum, target_aa, sfxn):
+        mut_pose = Pose()
+        mut_pose.assign(pose)
 
+        # Mutate
+        mut_mover = MutateResidue(resnum, target_aa)
+        mut_mover.apply(mut_pose)
+
+        # Repack 8A radius
+        task = TaskFactory.create_packer_task(mut_pose)
+        task.restrict_to_repacking()
+        # Prevent repacking of residues further than 8A
+        center = mut_pose.residue(resnum).xyz("CA")
+        for i in range(1, mut_pose.total_residue() + 1):
+            if mut_pose.residue(i).xyz("CA").distance(center) > 8.0:
+                task.nonconst_residue_task(i).prevent_repacking()
+
+        packer = PackRotamersMover(sfxn, task)
+        packer.apply(mut_pose)
+        return mut_pose
+
+    def _ddG(self):
+        if not HAS_PYROSETTA:
+            import numpy as np
+
+            # Return NaNs if PyRosetta is missing
+            for _, rec in self._cif.residues.iterrows():
+                yield {
+                    "auth_asym_id": rec["auth_asym_id"],
+                    "auth_seq_id": str(rec["auth_seq_id"]),
+                    "pdbx_PDB_ins_code": rec.get("pdbx_PDB_ins_code", "?"),
+                    "ddG": np.nan,
+                }
+            return
+
+        sfxn = get_score_function(True)
         pose = self._pose
         pdbinfo = pose.pdb_info()
 
         for i, res in enumerate(pose.residues, 1):
             aa1 = res.name1()
             resnum = res.seqpos()
-            # Repack and score the native conformation
-            mutated_pose = predict_ddG.mutate_residue(
-                pose,
-                mutant_position=resnum,
-                mutant_aa="A" if aa1 != "A" else "G",
-                pack_radius=8.0,
-                pack_scorefxn=sfxn,
-            )
-            # Score the alanine mutated pose
-            score_A1 = sfxn.score(mutated_pose)
-            # Repack and score the original conformation
-            pose_1 = predict_ddG.mutate_residue(
-                pose, mutant_position=resnum, mutant_aa=aa1, pack_radius=8.0, pack_scorefxn=sfxn
-            )
-            score_1 = sfxn.score(pose_1)
-            # Compute the ddG of mutation as mutant_score - native_score (final-initial
-            ddG = score_A1 - score_1
+            target_aa = "A" if aa1 != "A" else "G"
+
+            # Mutate to target AA and repack
+            mutated_pose = self._mutate_and_repack(pose, resnum, target_aa, sfxn)
+            score_mut = sfxn.score(mutated_pose)
+
+            # Re-repack native AA to maintain fair baseline
+            native_pose = self._mutate_and_repack(pose, resnum, aa1, sfxn)
+            score_nat = sfxn.score(native_pose)
+
+            ddG = score_mut - score_nat
 
             yield {
                 "auth_asym_id": pdbinfo.chain(i),

@@ -35,6 +35,11 @@ def install_pyrosetta():
 
         print("PyRosetta is already installed.")
     except ImportError:
+        print(
+            "WARNING: PyRosetta is licensed by RosettaCommons for NON-COMMERCIAL ACADEMIC USE ONLY."
+        )
+        print("By proceeding with this installation, you agree to their academic license terms.")
+        print("If you are a commercial user, please cancel this installation (Ctrl+C).")
         print("Installing pyrosetta-installer and PyRosetta (this may take a few minutes)...")
         import subprocess
         import sys
