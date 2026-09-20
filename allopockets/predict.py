@@ -963,6 +963,7 @@ FClasses = [
     MelodiaF,
     BiopythonF,
     PyRosettaF,
+    OpenMMF,
     ProDyF,
     TransferEntropyF,
     HHBlitsF,

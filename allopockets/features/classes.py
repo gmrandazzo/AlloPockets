@@ -791,3 +791,135 @@ FClasses = [
     TransferEntropyF,
     HHBlitsF,
 ]
+
+
+class OpenMMF:
+    features = ["ddG_openmm"]
+
+    def __init__(self, cif):
+        self._cif = cif
+
+    def _get_energy(self, pdb_file, chain_id, res_id, orig_res, target_res):
+        import openmm as mm
+        from openmm import app, unit
+        import numpy as np
+        import pdbfixer
+
+        try:
+            # 1. Setup PDBFixer and mutate
+            fixer = pdbfixer.PDBFixer(filename=pdb_file)
+            fixer.removeHeterogens(False)
+
+            # Apply mutation (even if it's native to native, pdbfixer allows it or we skip)
+            if orig_res != target_res:
+                mut_str = f"{orig_res}-{res_id}-{target_res}"
+                fixer.applyMutations([mut_str], chain_id)
+
+            fixer.findMissingResidues()
+            fixer.findNonstandardResidues()
+            fixer.replaceNonstandardResidues()
+            fixer.findMissingAtoms()
+            fixer.addMissingAtoms()
+            fixer.addMissingHydrogens(7.0)
+
+            # 2. Setup System
+            forcefield = app.ForceField("amber14-all.xml", "implicit/obc2.xml")
+            system = forcefield.createSystem(
+                fixer.topology, nonbondedMethod=app.NoCutoff, constraints=app.HBonds
+            )
+
+            # 3. Freeze atoms > 8A away
+            target_residue = None
+            for res in fixer.topology.residues():
+                if res.chain.id == chain_id and res.id == str(res_id):
+                    target_residue = res
+                    break
+
+            if target_residue:
+                mut_positions = []
+                for atom in target_residue.atoms():
+                    pos = fixer.positions[atom.index]
+                    mut_positions.append(
+                        [
+                            pos[0].value_in_unit(unit.nanometers),
+                            pos[1].value_in_unit(unit.nanometers),
+                            pos[2].value_in_unit(unit.nanometers),
+                        ]
+                    )
+                mut_centroid = np.mean(mut_positions, axis=0)
+
+                for atom in fixer.topology.atoms():
+                    pos = fixer.positions[atom.index]
+                    pos_arr = np.array(
+                        [
+                            pos[0].value_in_unit(unit.nanometers),
+                            pos[1].value_in_unit(unit.nanometers),
+                            pos[2].value_in_unit(unit.nanometers),
+                        ]
+                    )
+                    dist = np.linalg.norm(pos_arr - mut_centroid)
+                    if dist > 0.8:  # > 8 Angstroms
+                        system.setParticleMass(atom.index, 0.0)
+
+            # 4. Minimize
+            integrator = mm.LangevinMiddleIntegrator(
+                300 * unit.kelvin, 1 / unit.picosecond, 0.004 * unit.picoseconds
+            )
+            simulation = app.Simulation(fixer.topology, system, integrator)
+            simulation.context.setPositions(fixer.positions)
+            simulation.minimizeEnergy(
+                maxIterations=10
+            )  # 10 iterations is usually enough for local repack
+
+            state = simulation.context.getState(getEnergy=True)
+            energy = state.getPotentialEnergy().value_in_unit(unit.kilocalories_per_mole)
+            return energy
+
+        except Exception:
+            return float("nan")
+
+    def __iter__(self):
+        # We need BioPython's representation to iterate
+        from Bio.PDB.MMCIFParser import MMCIFParser
+        import numpy as np
+
+        parser = MMCIFParser(QUIET=True)
+        structure = parser.get_structure("protein", self._cif.filename)
+
+        for model in structure:
+            for chain in model:
+                for res in chain:
+                    if res.id[0] != " ":  # Skip hetero/water
+                        continue
+
+                    chain_id = chain.id
+                    resnum = res.id[1]
+
+                    try:
+                        from Bio.PDB.Polypeptide import three_to_one
+
+                        aa1 = three_to_one(res.resname)
+                        aa3 = res.resname
+                    except:
+                        continue  # Not a standard amino acid
+
+                    target_aa = "ALA" if aa1 != "A" else "GLY"
+
+                    # Calculate Mutant
+                    score_mut = self._get_energy(
+                        self._cif.filename, chain_id, resnum, aa3, target_aa
+                    )
+                    # Calculate Native
+                    score_nat = self._get_energy(self._cif.filename, chain_id, resnum, aa3, aa3)
+
+                    if np.isnan(score_mut) or np.isnan(score_nat):
+                        ddG = float("nan")
+                    else:
+                        ddG = score_mut - score_nat
+
+                    yield {
+                        "auth_seq_id": resnum,
+                        "auth_asym_id": chain_id,
+                        "ddG_openmm": ddG,
+                    }
+            break  # Only process first model
