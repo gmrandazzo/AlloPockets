@@ -1586,5 +1586,37 @@ def run_prediction_cli(
         out_csv = Path(outdir) / f"{pdb.entry_id}_predictions.csv"
         preds.to_csv(out_csv)
         print(f"\nPredictions saved to: {out_csv}")
+
+        out_pml = Path(outdir) / f"{pdb.entry_id}_predictions.pml"
+        try:
+            with open(out_pml, "w") as f:
+                f.write(f"load {pdb.entry_id}/{pdb.entry_id}_out/{pdb.entry_id}_out.cif\n")
+                f.write("hide all\n")
+                f.write("show cartoon, not resn STP\n")
+                f.write("color gray70, not resn STP\n")
+
+                for pocket_id, row in preds.iterrows():
+                    score = row["Allosteric score"]
+                    idx = pocket_id.replace("pocket", "")
+
+                    f.write(f"select {pocket_id}, resn STP and resi {idx}\n")
+
+                    if score >= 0.5:
+                        f.write(f"color tv_green, {pocket_id}\n")
+                        f.write(f"set sphere_scale, 0.4, {pocket_id}\n")
+                    else:
+                        f.write(f"color tv_red, {pocket_id}\n")
+                        f.write(f"set sphere_scale, 0.2, {pocket_id}\n")
+
+                    f.write(f"show spheres, {pocket_id}\n")
+
+                f.write("deselect\n")
+                f.write("center\n")
+
+            print(f"PyMOL visualization script saved to: {out_pml}")
+            print(f"To view in PyMOL, run: pymol {out_pml}")
+        except Exception as e:
+            print(f"Could not generate PyMOL script: {e}")
+
     else:
         print("\nNo predictions generated.")
