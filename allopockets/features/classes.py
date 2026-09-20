@@ -2,6 +2,7 @@
 AlloPockets - Allosteric Pocket Prediction, Pathway Tracing & 3D Debugging.
 
 Original Author: Francho Nerín Fonz <fnerin@bioacademy.gr>
+Refactoring & PyRosetta Integration: Giuseppe Marco Randazzo <gmrandazzo@gmail.com>
 License: GNU General Public License v3.0 (GPL-3.0)
 
 This program is free software: you can redistribute it and/or modify
