@@ -25,7 +25,7 @@ import click
 
 
 @click.group()
-@click.version_option(version="1.0.0", prog_name="allopockets")
+@click.version_option(package_name="allopockets", prog_name="allopockets")
 def main():
     """AlloPockets: Allosteric Pocket Prediction, Pathway Tracing & 3D Debugging."""
     pass

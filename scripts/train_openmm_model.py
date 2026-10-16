@@ -9,6 +9,7 @@ Train OpenMM-based Model (186 features)
 """
 
 import os
+
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
 os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["MKL_NUM_THREADS"] = "1"
@@ -50,7 +51,6 @@ def process_pdb_openmm(args):
     t0 = time.time()
 
     try:
-        from allopockets.features.utils import Cif
         Cif.path = work_dir
         Cif.original_cifs_path = work_dir
         cif = Cif(pdb)
@@ -64,7 +64,7 @@ def process_pdb_openmm(args):
             pocket_cif = Path(work_dir) / pdb / f"{pdb}_out" / "pockets" / f"{pname}_atm.cif"
             if not pocket_cif.exists():
                 continue
-            from allopockets.pockets import Pocket
+
             try:
                 pkt = Pocket(str(pocket_cif))
                 pkt_res = pkt.residues[["auth_asym_id", "auth_seq_id"]].drop_duplicates()
@@ -104,11 +104,9 @@ def process_pdb_openmm(args):
                 continue
 
             mean_val = float(sub["ddG_openmm"].mean())
-            rows.append({
-                "Pockets_pdb": pdb,
-                "Pockets_pocket": pname,
-                "OpenMMF_ddG_openmm": mean_val
-            })
+            rows.append(
+                {"Pockets_pdb": pdb, "Pockets_pocket": pname, "OpenMMF_ddG_openmm": mean_val}
+            )
 
         df = pd.DataFrame(rows)
         if df.empty:
@@ -120,6 +118,7 @@ def process_pdb_openmm(args):
 
     except Exception as e:
         import traceback
+
         print(f"[{pdb}] OpenMM extraction failed: {e}")
         traceback.print_exc()
         empty_df = pd.DataFrame(columns=["Pockets_pdb", "Pockets_pocket", "OpenMMF_ddG_openmm"])
@@ -128,8 +127,12 @@ def process_pdb_openmm(args):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Extract OpenMM features and train 186-feature model")
-    parser.add_argument("--workers", type=int, default=4, help="Number of parallel workers (default: 4)")
+    parser = argparse.ArgumentParser(
+        description="Extract OpenMM features and train 186-feature model"
+    )
+    parser.add_argument(
+        "--workers", type=int, default=4, help="Number of parallel workers (default: 4)"
+    )
     parser.add_argument("--force", action="store_true", help="Force recomputation of cached PDBs")
     args = parser.parse_args()
 
@@ -154,8 +157,10 @@ def main():
         test_df = pd.read_parquet(test_186_path)
     else:
         train_df, test_df = generate_route2_datasets(
-            str(train_155), str(test_155),
-            str(data_dir / "temp_train.parquet"), str(data_dir / "temp_test.parquet")
+            str(train_155),
+            str(test_155),
+            str(data_dir / "temp_train.parquet"),
+            str(data_dir / "temp_test.parquet"),
         )
 
     all_pockets = pd.concat([train_df, test_df], ignore_index=True)
@@ -174,7 +179,9 @@ def main():
             cached_pdbs.add(f.stem)
 
         pending_pdbs = [p for p in all_pdbs if p not in cached_pdbs or args.force]
-        print(f"Checkpoint cache status: {len(cached_pdbs & set(all_pdbs))}/{len(all_pdbs)} PDBs already completed.")
+        print(
+            f"Checkpoint cache status: {len(cached_pdbs & set(all_pdbs))}/{len(all_pdbs)} PDBs already completed."
+        )
         print(f"Remaining to process: {len(pending_pdbs)} PDBs using {args.workers} workers.")
 
         if pending_pdbs:
@@ -200,9 +207,13 @@ def main():
                     print(f"Error reading {p_file}: {e}")
 
         if all_dfs:
-            openmm_df = pd.concat(all_dfs, ignore_index=True).drop_duplicates(subset=["Pockets_pdb", "Pockets_pocket"])
+            openmm_df = pd.concat(all_dfs, ignore_index=True).drop_duplicates(
+                subset=["Pockets_pdb", "Pockets_pocket"]
+            )
         else:
-            openmm_df = pd.DataFrame(columns=["Pockets_pdb", "Pockets_pocket", "OpenMMF_ddG_openmm"])
+            openmm_df = pd.DataFrame(
+                columns=["Pockets_pdb", "Pockets_pocket", "OpenMMF_ddG_openmm"]
+            )
 
         openmm_df.to_parquet(openmm_cache)
         print(f"Saved {len(openmm_df)} pocket OpenMM features to {openmm_cache}")

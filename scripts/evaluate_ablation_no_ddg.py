@@ -18,6 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from allopockets.ml.train import train_pipeline
 
+
 def main():
     data_dir = Path("data/benchmark")
     train_186_path = data_dir / "curated_train_pockets_186feats.parquet"
@@ -32,7 +33,9 @@ def main():
     test_df = pd.read_parquet(test_186_path)
 
     # Drop ddG columns
-    ddg_cols_to_drop = [c for c in ["PyRosetta_ddG", "OpenMMF_ddG_openmm", "ddG"] if c in train_df.columns]
+    ddg_cols_to_drop = [
+        c for c in ["PyRosetta_ddG", "OpenMMF_ddG_openmm", "ddG"] if c in train_df.columns
+    ]
     print(f"Dropping ddG columns: {ddg_cols_to_drop}")
 
     train_185 = train_df.drop(columns=ddg_cols_to_drop)
@@ -105,23 +108,50 @@ def main():
         mcc = t_cls.get("mcc", 0.0)
         top1 = t_ret.get("top_1_accuracy", 0.0) * 100
         top3 = t_ret.get("top_3_accuracy", 0.0) * 100
-        print(f"{name:<30} | {roc:<12.4f} | {pr:<12.4f} | {mcc:<10.4f} | {top1:<9.1f}% | {top3:<9.1f}%")
+        print(
+            f"{name:<30} | {roc:<12.4f} | {pr:<12.4f} | {mcc:<10.4f} | {top1:<9.1f}% | {top3:<9.1f}%"
+        )
 
     if "LightGBM" in r1_data:
-        print_row("Route 1 LightGBM (155f, no ddG)", r1_data["LightGBM"].get("test", {}), r1_data["LightGBM"].get("test_retrieval", {}))
-    print_row("Route 2 LightGBM (185f, no ddG)", results["LightGBM_no_ddG"]["test"], results["LightGBM_no_ddG"]["test_retrieval"])
+        print_row(
+            "Route 1 LightGBM (155f, no ddG)",
+            r1_data["LightGBM"].get("test", {}),
+            r1_data["LightGBM"].get("test_retrieval", {}),
+        )
+    print_row(
+        "Route 2 LightGBM (185f, no ddG)",
+        results["LightGBM_no_ddG"]["test"],
+        results["LightGBM_no_ddG"]["test_retrieval"],
+    )
     if "LightGBM" in r2_data:
-        print_row("Route 2 LightGBM (186f, +PyRosetta)", r2_data["LightGBM"].get("test", {}), r2_data["LightGBM"].get("test_retrieval", {}))
+        print_row(
+            "Route 2 LightGBM (186f, +PyRosetta)",
+            r2_data["LightGBM"].get("test", {}),
+            r2_data["LightGBM"].get("test_retrieval", {}),
+        )
 
     print("-" * 95)
 
     if "XGBoost" in r1_data:
-        print_row("Route 1 XGBoost (155f, no ddG)", r1_data["XGBoost"].get("test", {}), r1_data["XGBoost"].get("test_retrieval", {}))
-    print_row("Route 2 XGBoost (185f, no ddG)", results["XGBoost_no_ddG"]["test"], results["XGBoost_no_ddG"]["test_retrieval"])
+        print_row(
+            "Route 1 XGBoost (155f, no ddG)",
+            r1_data["XGBoost"].get("test", {}),
+            r1_data["XGBoost"].get("test_retrieval", {}),
+        )
+    print_row(
+        "Route 2 XGBoost (185f, no ddG)",
+        results["XGBoost_no_ddG"]["test"],
+        results["XGBoost_no_ddG"]["test_retrieval"],
+    )
     if "XGBoost" in r2_data:
-        print_row("Route 2 XGBoost (186f, +PyRosetta)", r2_data["XGBoost"].get("test", {}), r2_data["XGBoost"].get("test_retrieval", {}))
+        print_row(
+            "Route 2 XGBoost (186f, +PyRosetta)",
+            r2_data["XGBoost"].get("test", {}),
+            r2_data["XGBoost"].get("test_retrieval", {}),
+        )
 
     print("=" * 95)
+
 
 if __name__ == "__main__":
     main()
