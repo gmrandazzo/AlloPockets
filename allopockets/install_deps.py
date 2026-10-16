@@ -141,16 +141,41 @@ def install_freesasa(bin_dir):
         else:
             print("Homebrew is not installed. Please install freesasa manually (e.g. from source).")
     elif sys.platform.startswith("linux"):
-        print("On Linux, please install freesasa via your package manager:")
-        print("  Ubuntu/Debian: sudo apt-get install freesasa")
-        print("  CentOS/RHEL: sudo yum install freesasa")
+        print("\n" + "=" * 70)
+        print(" ERROR: 'freesasa' is missing!")
+        print(" AlloPockets requires FreeSASA with JSON support to run predictions.")
+        print(" Please install it manually via your package manager:")
+        print("   Ubuntu/Debian: sudo apt-get install freesasa")
+        print("   CentOS/RHEL: sudo yum install freesasa")
+        print("=" * 70 + "\n")
+        raise RuntimeError(
+            "freesasa is not installed. Please run the package manager command above."
+        )
 
 
 def install_dssp(bin_dir):
     print(">>> Checking dssp (mkdssp)...")
-    if shutil.which("mkdssp", path=str(bin_dir)) or shutil.which("mkdssp") or shutil.which("dssp"):
-        print("dssp is already installed.")
-        return
+
+    # Check if existing mkdssp is version >= 4.4.0
+    import subprocess
+    import shutil
+    import sys
+    import urllib.request
+
+    mkdssp_path = shutil.which("mkdssp", path=str(bin_dir)) or shutil.which("mkdssp")
+    if mkdssp_path:
+        try:
+            result = subprocess.run([mkdssp_path, "--version"], capture_output=True, text=True)
+            if "mkdssp version" in result.stdout:
+                version_str = result.stdout.split("version")[1].strip()
+                v_parts = [int(x) for x in version_str.split(".")]
+                if len(v_parts) >= 2 and (v_parts[0] > 4 or (v_parts[0] == 4 and v_parts[1] >= 4)):
+                    print(f"Valid dssp version {version_str} is already installed.")
+                    return
+                else:
+                    print(f"Found outdated dssp version {version_str}. Minimum required is 4.4.0.")
+        except Exception:
+            print("Could not verify dssp version. Will attempt to install.")
 
     print("dssp/mkdssp requires complex dependencies (libcifpp, boost).")
     if sys.platform == "darwin":
@@ -161,9 +186,16 @@ def install_dssp(bin_dir):
         else:
             print("Homebrew is not installed. Please install dssp manually.")
     elif sys.platform.startswith("linux"):
-        print("On Linux, please install dssp via your package manager:")
-        print("  Ubuntu/Debian: sudo apt-get install dssp")
-        print("  CentOS/RHEL: sudo yum install dssp")
+        print("Downloading static mkdssp 4.4.0 binary for Linux...")
+        url = "https://github.com/PDB-REDO/dssp/releases/download/v4.4.0/mkdssp-4.4.0-linux-x64"
+        dest = bin_dir / "mkdssp"
+        try:
+            urllib.request.urlretrieve(url, dest)  # nosec B310
+            dest.chmod(0o755)
+            print("Successfully installed static mkdssp 4.4.0.")
+        except Exception as e:
+            print(f"Failed to download static dssp binary: {e}")
+            raise RuntimeError("Could not install dssp automatically.")
 
 
 def run_installation():

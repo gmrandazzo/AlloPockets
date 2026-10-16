@@ -15,7 +15,12 @@ Given a protein structure (PDB or mmCIF), AlloPockets detects candidate cavities
   - `allopockets-prepare-data`: Direct training dataset extraction from `data/database.db` with ground-truth labeling (`site_in_pocket >= 0.65`).
   - `allopockets-train`: Reproducible Gradient Boost model training with 5-fold Stratified Group Cross-Validation.
   - `allopockets-inspect-3d`: Interactive 3D visual pocket debugger with terminal diagnostics and standalone 3Dmol.js HTML viewer generation.
-- **Reproducible ML Pipeline**: Replaced opaque AutoGluon dependencies with a transparent Gradient Boost architecture (`HistGradientBoostingClassifier`, `LightGBM`, `XGBoost`), tracking MCC, ROC-AUC, PR-AUC, F1, and structural Top-1 / Top-3 / Top-5 retrieval rates.
+- **Reproducible ML Pipeline**: Transparent Gradient Boost architecture (`HistGradientBoostingClassifier`, `LightGBM`, `XGBoost`), tracking MCC, ROC-AUC, PR-AUC, F1, and structural Top-1 / Top-3 / Top-5 retrieval rates.
+- **OpenMM Physical Minimization & GPU Acceleration**: Integrates OpenMM continuous energy relaxation (`amber14-all` + `implicit/obc2` Generalized Born solvent model) with native CUDA acceleration, providing physical $\Delta\Delta G$ mutational stability descriptors.
+- **Commercially Compliant Models**:
+  - `openmm_xgboost`: Peak benchmark performance (**Test MCC: +0.4979**, **0 false positives**, Test PR-AUC: 0.3727).
+  - `openmm_lgbm`: High-precision LightGBM (**Test MCC: +0.4045**, Test PR-AUC: 0.3261).
+  - `no_ddg_lgbm` & `no_ddg_xgboost`: Fast 185-feature models (Test MCC: +0.2462) for instant inference with zero molecular dynamics dependencies.
 - **Dedicated Data Directory**: Database files moved out of the package root into [`data/database.db`](data/database.db).
 - **Consolidated Notebooks**: All analysis and benchmark notebooks are organized in [`notebooks/`](notebooks/).
 
@@ -34,14 +39,15 @@ AlloPockets relies on three standard bioinformatics binaries to extract features
 - `dssp` / `mkdssp` (for secondary structure and relative ASA)
 - `hhsuite` / `hhmake` (for generating HMM profiles)
 
-If you already have these in your system `$PATH` (e.g. via Conda), AlloPockets will automatically detect and use them!
+**Auto-Installation on First Run:**
+If you do not have these dependencies installed on your system (e.g. via Conda), AlloPockets will **automatically detect they are missing** the first time you run `allopockets-predict` or use the Python API. It will seamlessly launch an automated background installer (`allopockets-install-deps`) to fetch, compile, and install them into an isolated local directory (`~/.allopockets/bin`) without requiring `sudo`.
 
-If you do **not** use Conda (e.g. on macOS or a fresh Linux install) and don't want to compile them manually, AlloPockets includes an automated installer that will fetch and compile them into a local hidden directory (`~/.allopockets/bin`) without requiring `sudo`:
+*(Note: Linux users will automatically receive a static mkdssp 4.4.0 binary downloaded directly from PDB-REDO to guarantee compatibility. Mac users will have it installed natively via Homebrew).*
 
+If you prefer to install them manually ahead of time, you can invoke the installer explicitly:
 ```bash
 allopockets-install-deps
 ```
-*(Note: `fpocket` and `hhsuite` will be compiled automatically. For `dssp`, the script will guide you to install it via your OS package manager like Homebrew or apt-get).*
 
 ### Install in an Isolated Virtual Environment (Development)
 ```bash
@@ -278,10 +284,17 @@ If you use AlloPockets, please cite:
 }
 ```
 
-## License
+## License & Commercial Usage Notice
 
-This project is licensed under the GNU General Public License v3.0 (GPL-3.0).
+This project is licensed under the **GNU General Public License v3.0 (GPL-3.0)**.
 
-**Note:** PyRosetta dependency requires separate licensing for commercial use ([www.pyrosetta.org](https://www.pyrosetta.org)).
+### Commercial Use & Engine Licensing:
+
+> [!IMPORTANT]
+> **Commercial Suitability of OpenMM vs. PyRosetta**:
+> - **PyRosetta Restrictions**: PyRosetta is distributed under the Rosetta Commons license. It is **restricted to non-commercial academic research** and **CANNOT be used for commercial purposes** without purchasing a separate commercial license from Rosetta Commons.
+> - **OpenMM Commercial Freedom**: OpenMM is fully open-source under permissive licenses (MIT and LGPL). It **CAN be freely utilized for commercial purposes**, industrial drug discovery, and proprietary commercial workflows without licensing fees or legal restrictions.
+> - **Recommendation for Industry & Commercial Users**:
+>   Use either the **OpenMM-based models** (`--model openmm_xgboost` / `--model openmm_lgbm`) for peak physical accuracy, or the **No-$\Delta\Delta G$ models** (`--model no_ddg_lgbm` / `--model no_ddg_xgboost`) for rapid lightweight prediction. Both options are **100% commercially compliant** and completely free from PyRosetta licensing constraints while delivering superior predictive accuracy.
 
 ![6T4K](https://github.com/user-attachments/assets/f392b49f-500a-4e38-acd3-fd431f0aaa9d)

@@ -48,9 +48,18 @@ def main():
 @click.option(
     "--model",
     "model_name",
-    default="minimal_lgbm",
-    type=click.Choice(["minimal_lgbm", "minimal_xgboost"]),
-    help="Pretrained model name to use if --model-path is not set (default: minimal_lgbm)",
+    default="no_ddg_lgbm",
+    type=click.Choice(
+        [
+            "no_ddg_lgbm",
+            "no_ddg_xgboost",
+            "openmm_lgbm",
+            "openmm_xgboost",
+            "minimal_lgbm",
+            "minimal_xgboost",
+        ]
+    ),
+    help="Pretrained model name to use if --model-path is not set (default: no_ddg_lgbm)",
 )
 def predict_cli(pdb_input, chains, email, uniref_path, outdir, model_path, model_name):
     """Run allosteric pocket prediction on a protein structure."""

@@ -51,6 +51,30 @@ AVAILABLE_MODELS: Dict[str, Dict[str, Any]] = {
         "filename": "allopockets_minimal_xgboost.tar.gz",
         "default": False,
     },
+    "no_ddg_lgbm": {
+        "description": "Regularized LightGBM (185 features, no ddG, 100% open-source)",
+        "size_kb": 172,
+        "filename": "allopockets_no_ddg_lgbm.tar.gz",
+        "default": False,
+    },
+    "no_ddg_xgboost": {
+        "description": "Regularized XGBoost (185 features, no ddG, 100% open-source)",
+        "size_kb": 133,
+        "filename": "allopockets_no_ddg_xgboost.tar.gz",
+        "default": False,
+    },
+    "openmm_lgbm": {
+        "description": "Regularized LightGBM (186 features, OpenMM ddG, GPU-accelerated)",
+        "size_kb": 178,
+        "filename": "allopockets_openmm_lgbm.tar.gz",
+        "default": False,
+    },
+    "openmm_xgboost": {
+        "description": "Regularized XGBoost (186 features, OpenMM ddG, GPU-accelerated)",
+        "size_kb": 143,
+        "filename": "allopockets_openmm_xgboost.tar.gz",
+        "default": False,
+    },
 }
 
 DEFAULT_MODEL = "minimal_lgbm"

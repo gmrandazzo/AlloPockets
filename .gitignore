@@ -228,6 +228,9 @@ ensembles/
 # Benchmark temporary extraction files
 data/benchmark/work/
 data/benchmark/cache/
+data/benchmark/cache_openmm/
 data/benchmark/work_minimal/
 data/benchmark/cache_minimal/
+data/benchmark/temp_*.parquet
 models/route1_autogluon/
+predict_results/

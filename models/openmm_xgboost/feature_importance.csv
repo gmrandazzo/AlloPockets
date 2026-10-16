@@ -1,0 +1,187 @@
+feature,importance
+FPocket_Number of alpha spheres,0.039955627
+FPocket_Alpha sphere density,0.027657732
+Graphein_hphob_ph7_5,0.026742566
+Graphein_molecularweight,0.022473512
+Graphein_beta_sheetlevitt,0.021784252
+FPocket_Pocket volume (Monte Carlo),0.01966149
+FPocket_Number of apolar alpha sphere,0.018830096
+Graphein_alpha_helixlevitt,0.01793271
+FPocket_Pocket Score,0.01779422
+FreeSASA_relative-area_apolar,0.017676016
+FreeSASA_area_apolar,0.016496934
+Graphein_averageburied,0.015053296
+Graphein_hphob_janin,0.014591777
+HHBlits_F,0.0132955825
+FPocket_Polarity Score,0.01321388
+FPocket_Charge Score,0.0127984425
+FreeSASA_relative-area_main-chain,0.012235033
+Graphein_hplchfba,0.012225936
+ProDy_prs_effectiveness,0.012020869
+FPocket_Cent. of mass - Alpha Sphere max dist,0.011963423
+Graphein_dim_6,0.011672349
+FPocket_Pocket volume (convex hull),0.0110592265
+Graphein_hphob_parker,0.011056134
+Graphein_dim_2,0.010657416
+Graphein_hphob_breese,0.010518101
+FreeSASA_relative-area_polar,0.010271086
+DSSP_secondary structure_T,0.009732557
+FPocket_Proportion of polar atoms,0.009623028
+Amino acids_label_comp_id_F,0.009304111
+Melodia_torsion,0.008086516
+FPocket_Proportion of apolar alpha sphere,0.008015604
+ProDy_essa,0.007841876
+ProDy_mechstiff,0.007709651
+Graphein_hphob_rose,0.0076817013
+DSSP_secondary structure_E,0.00753592
+Amino acids_label_comp_id_N,0.007407493
+HHBlits_N,0.0071436167
+HHBlits_S,0.00704479
+FPocket_Mean B-factor of pocket residues,0.007032408
+DSSP_O_NH_2_energy,0.0070323045
+DSSP_NH_O_1_energy,0.0069327704
+Graphein_dim_7,0.006842437
+Amino acids_label_comp_id_V,0.0067948177
+HHBlits_G,0.006664668
+HHBlits_V,0.0066519342
+Amino acids_label_comp_id_C,0.0065741474
+FreeSASA_relative-area_total,0.006525453
+Graphein_pka_nh3,0.0064004734
+Graphein_hphob_manavalan,0.0063899783
+Graphein_beta_sheetfasman,0.0063222754
+Graphein_averageflexibility,0.0062631406
+DSSP_secondary structure_-,0.006215048
+Graphein_polarityzimmerman,0.006107364
+Amino acids_label_comp_id_Y,0.0059357435
+Graphein_alpha_helixroux,0.005913823
+Amino acids_label_comp_id_T,0.0058292095
+Biopython_EXP_CN,0.0058253966
+Graphein_pka_cooh_alpha,0.0058184485
+Graphein_antiparallelbeta_strand,0.0057978514
+Amino acids_label_comp_id_W,0.0054605375
+Graphein_beta_turnfasman,0.0054153604
+Graphein_hphob_eisenberg,0.0052793864
+Graphein_hphob_doolittle,0.0052133333
+Graphein_ratioside,0.0052069933
+Amino acids_label_comp_id_M,0.0051393793
+Amino acids_label_comp_id_G,0.005130943
+HHBlits_C,0.0051186937
+FreeSASA_area_polar,0.005081202
+FreeSASA_area_side-chain,0.00496942
+FPocket_Flexibility,0.0049274587
+DSSP_secondary structure_H,0.004917206
+Graphein_dim_4,0.004865133
+Amino acids_label_comp_id_L,0.00478251
+Graphein_coilroux,0.004710153
+Graphein_hphob_wolfenden,0.0046807
+Melodia_writhing,0.0046657654
+FreeSASA_area_main-chain,0.004646469
+Graphein_hplc2_1,0.0046270057
+Graphein_bulkiness,0.0046073813
+TransferEntropy_TE,0.004601708
+HHBlits_L,0.0045616534
+Graphein_numbercodons,0.0044282475
+Graphein_beta_turnroux,0.004372929
+OpenMMF_ddG_openmm,0.004311764
+Melodia_curvature,0.0043014544
+HHBlits_K,0.004243345
+FPocket_Local hydrophobic density Score,0.0042403834
+HHBlits_I,0.004225722
+Melodia_arc_len,0.0040128785
+Amino acids_label_comp_id_K,0.0040008537
+DSSP_secondary structure_S,0.003965472
+Graphein_alpha_helixfasman,0.003904896
+FPocket_Polar SASA,0.0038853122
+Amino acids_label_comp_id_E,0.0038508368
+Graphein_polaritygrantham,0.0038160468
+Amino acids_label_comp_id_Q,0.003811099
+Melodia_propensity,0.00380284
+ProDy_prs_sensitivity,0.0037156686
+Graphein_a_a_swiss_prot,0.0036978337
+Graphein_buriedresidues,0.0036805912
+Graphein_hphob_welling,0.0036771442
+FPocket_Drug Score,0.0036608041
+Amino acids_label_comp_id_I,0.0036219484
+HHBlits_E,0.0036126717
+HHBlits_P,0.003511953
+Graphein_isoelectric_points,0.003490205
+Graphein_transmembranetendency,0.0034764225
+Graphein_hplc7_4,0.0034763098
+FPocket_Mean alpha-sphere radius,0.0034583297
+Graphein_pka_rgroup,0.0034302482
+DSSP_psi,0.0033512588
+Amino acids_label_comp_id_S,0.0033167223
+Graphein_hphob_roseman,0.0032900262
+DSSP_NH_O_2_relidx,0.0030068934
+Amino acids_label_comp_id_D,0.0029827661
+HHBlits_T,0.0029420415
+Graphein_a_a_composition,0.0029366645
+Biopython_EXP_HSE_B_U,0.00293622
+Graphein_dim_1,0.0029349208
+DSSP_O_NH_1_relidx,0.0029181603
+FPocket_Amino Acid based volume Score,0.0028542797
+Graphein_hphob_argos,0.0028514063
+FPocket_Hydrophobicity Score,0.0028299976
+Graphein_hphob_chothia,0.0028128265
+DSSP_secondary structure_B,0.002765578
+DSSP_NH_O_2_energy,0.0026615416
+Graphein_relativemutability,0.0026539757
+Graphein_hphob_tanford,0.0025699304
+FPocket_Total SASA,0.0025523223
+Graphein_hphob_wilson,0.002533816
+FPocket_Apolar SASA,0.0024227188
+HHBlits_H,0.00238323
+FPocket_Mean alpha-sphere Solvent Acc.,0.0023544247
+Amino acids_label_comp_id_A,0.0023261195
+DSSP_secondary structure_I,0.002306632
+Graphein_beta_turnlevitt,0.002287273
+DSSP_relative ASA,0.0021985713
+Graphein_accessibleresidues,0.0021757283
+Graphein_dim_3,0.0021021767
+Biopython_EXP_HSE_B_D,0.002060797
+Melodia_psi,0.0019506161
+Graphein_hplctfa,0.0019320638
+Melodia_phi,0.0019128348
+Graphein_hphob_woods,0.0018838204
+Amino acids_label_comp_id_R,0.0018652269
+HHBlits_Q,0.0018316279
+HHBlits_D,0.0018107365
+ProDy_rmsf,0.0017464979
+DSSP_NH_O_1_relidx,0.0016969112
+Amino acids_label_comp_id_P,0.0016870667
+Graphein_recognitionfactors,0.0016558535
+HHBlits_R,0.0016337844
+Amino acids_label_comp_id_H,0.0015416498
+FreeSASA_area_total,0.0014854018
+Graphein_parallelbeta_strand,0.0014403863
+DSSP_secondary structure_G,0.0013849285
+DSSP_O_NH_2_relidx,0.0013679275
+Graphein_dim_5,0.0013612531
+HHBlits_Y,0.0013494627
+HHBlits_W,0.0010677148
+Graphein_hphob_ph3_4,0.0010321153
+DSSP_phi,0.0009840148
+Graphein_beta_sheetroux,0.0008346924
+HHBlits_A,0.00081910123
+DSSP_O_NH_1_energy,0.00079633936
+Graphein_hphob_sweet,0.0006983348
+Graphein_refractivity,0.00046732457
+Graphein_totalbeta_strand,0.0002638098
+Graphein_hphob_leo,0.00020693956
+Graphein_hphob_miyazawa,2.5639261e-05
+Graphein_hphob_guy,2.0051104e-05
+Graphein_hphob_mobility,0.0
+Graphein_hphob_black,0.0
+Biopython_EXP_RD,0.0
+Biopython_EXP_RD_CA,0.0
+HHBlits_M,0.0
+HHBlits_M->I,0.0
+HHBlits_M->M,0.0
+HHBlits_M->D,0.0
+HHBlits_I->M,0.0
+HHBlits_D->M,0.0
+HHBlits_I->I,0.0
+HHBlits_D->D,0.0
+HHBlits_Neff,0.0
+HHBlits_Neff_I,0.0
+HHBlits_Neff_D,0.0

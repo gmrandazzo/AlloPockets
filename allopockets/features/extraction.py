@@ -52,8 +52,11 @@ def calculate_features(pdb, fc, file, structures_path, original_cifs_path):
                 )
             except (ImportError, FileNotFoundError, RuntimeError) as e:
                 raise e
-            except Exception:
-                # If feature calculation fails, it returns False later
+            except Exception as e:
+                import traceback
+
+                traceback.print_exc()
+                print(f"FAILED ON FEATURE {feat} DUE TO: {e}")
                 break
 
         # If not all features, return False to be handled by the function calling calculate_features
@@ -209,6 +212,14 @@ featsd = {
         ],
     },
     "PyRosettaF": {"ddG": ["auth_asym_id", "auth_seq_id", "pdbx_PDB_ins_code", "ddG"]},
+    "OpenMMF": {
+        "ddG_openmm": [
+            "auth_asym_id",
+            "auth_seq_id",
+            "pdbx_PDB_ins_code",
+            "ddG_openmm",
+        ]
+    },
     "ProDyF": {
         "prs": [
             "auth_asym_id",
@@ -363,7 +374,10 @@ def get_pdb_features(cif, sites, features_path):
     # Process each featureclass and its features and add them to the features DataFrame
     for fcname in featsd.keys():
         merged = residues
-        for feat in pd.read_pickle(f"{features_path}/features/{pdb}/{fcname}.pkl"):
+        pkl_file = f"{features_path}/features/{pdb}/{fcname}.pkl"
+        if not os.path.isfile(pkl_file):
+            continue
+        for feat in pd.read_pickle(pkl_file):
             fname = feat["feature"]
             result = feat["result"]
 

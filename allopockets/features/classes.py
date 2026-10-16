@@ -780,24 +780,19 @@ class TransferEntropyF:
         return df
 
 
-FClasses = [
-    GrapheinF,
-    FreeSASAF,
-    DSSPF,
-    MelodiaF,
-    BiopythonF,
-    PyRosettaF,
-    ProDyF,
-    TransferEntropyF,
-    HHBlitsF,
-]
-
-
 class OpenMMF:
     features = ["ddG_openmm"]
 
+    def ddG_openmm(self):
+        import pandas as pd
+
+        return pd.DataFrame(list(self.__iter__()))
+
     def __init__(self, cif):
         self._cif = cif
+        import openmm.app as app
+
+        self._forcefield = app.ForceField("amber14-all.xml", "implicit/obc2.xml")
 
     def _get_energy(self, pdb_file, chain_id, res_id, orig_res, target_res):
         import openmm as mm
@@ -823,9 +818,11 @@ class OpenMMF:
             fixer.addMissingHydrogens(7.0)
 
             # 2. Setup System
-            forcefield = app.ForceField("amber14-all.xml", "implicit/obc2.xml")
-            system = forcefield.createSystem(
-                fixer.topology, nonbondedMethod=app.NoCutoff, constraints=app.HBonds
+            system = self._forcefield.createSystem(
+                fixer.topology,
+                nonbondedMethod=app.CutoffNonPeriodic,
+                nonbondedCutoff=1.2 * unit.nanometers,
+                constraints=None,
             )
 
             # 3. Freeze atoms > 8A away
@@ -875,10 +872,11 @@ class OpenMMF:
             energy = state.getPotentialEnergy().value_in_unit(unit.kilocalories_per_mole)
             return energy
 
-        except Exception:
+        except Exception as e:
+            print(f"OpenMM Error in _get_energy: {e}")
             return float("nan")
 
-    def __iter__(self):
+    def __iter__(self, allowed_residues=None):
         # We need BioPython's representation to iterate
         from Bio.PDB.MMCIFParser import MMCIFParser
         import numpy as np
@@ -895,10 +893,14 @@ class OpenMMF:
                     chain_id = chain.id
                     resnum = res.id[1]
 
-                    try:
-                        from Bio.PDB.Polypeptide import three_to_one
+                    if allowed_residues is not None:
+                        if (chain_id, str(resnum)) not in allowed_residues:
+                            continue
 
-                        aa1 = three_to_one(res.resname)
+                    try:
+                        from Bio.Data.IUPACData import protein_letters_3to1
+
+                        aa1 = protein_letters_3to1[res.resname.capitalize()]
                         aa3 = res.resname
                     except:
                         continue  # Not a standard amino acid
@@ -918,8 +920,23 @@ class OpenMMF:
                         ddG = score_mut - score_nat
 
                     yield {
-                        "auth_seq_id": resnum,
+                        "auth_seq_id": str(resnum),
                         "auth_asym_id": chain_id,
+                        "pdbx_PDB_ins_code": res.id[2].strip() or "?",
                         "ddG_openmm": ddG,
                     }
             break  # Only process first model
+
+
+FClasses = [
+    GrapheinF,
+    FreeSASAF,
+    DSSPF,
+    MelodiaF,
+    BiopythonF,
+    PyRosettaF,
+    OpenMMF,
+    ProDyF,
+    TransferEntropyF,
+    HHBlitsF,
+]

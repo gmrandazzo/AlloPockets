@@ -922,41 +922,106 @@ class DSSPF:  # type: ignore[no-redef]
     def dssp(self):
         chains_dfs = []
         for chain in self._cif.residues.label_asym_id.unique():
-            with (
-                tempfile.TemporaryDirectory() as tmpdir,
-                self._cif._extended_temp_ciff(
-                    {
-                        "_atom_site": self._cif.atoms.query(f"label_asym_id == '{chain}'").to_dict(
-                            orient="list"
+            with tempfile.TemporaryDirectory() as tmpdir:
+                pdb_file = f"{tmpdir}/chain.pdb"
+                cif_out = f"{tmpdir}/out.cif"
+
+                df = self._cif.atoms.query(f"label_asym_id == '{chain}'")
+                with open(pdb_file, "w") as f:
+                    f.write("HEADER\n")
+                    for _, row in df.iterrows():
+                        atom_id = str(row["id"])[:5]
+                        atom_name = str(row["label_atom_id"])
+                        if len(atom_name) < 4:
+                            atom_name = f" {atom_name:<3}"
+                        res_name = str(row["label_comp_id"])[:3]
+                        ch = str(row["label_asym_id"])[:1]
+                        res_id = str(row["label_seq_id"])[:4]
+                        x, y, z = (
+                            float(row["Cartn_x"]),
+                            float(row["Cartn_y"]),
+                            float(row["Cartn_z"]),
                         )
-                    }
-                ) as f,
-            ):
+                        occ = float(row["occupancy"]) if "occupancy" in row else 1.0
+                        bfac = float(row["B_iso_or_equiv"]) if "B_iso_or_equiv" in row else 0.0
+                        element = str(row["type_symbol"])[:2].strip().rjust(2)
+                        f.write(
+                            f"ATOM  {atom_id:>5} {atom_name} {res_name:>3} {ch}{res_id:>4}    {x:8.3f}{y:8.3f}{z:8.3f}{occ:6.2f}{bfac:6.2f}          {element:>2}  \n"
+                        )
+
                 import shutil
 
                 dssp_bin = shutil.which("mkdssp") or shutil.which("dssp")
                 if not dssp_bin:
-                    raise RuntimeError(
-                        "mkdssp (dssp) is not installed. Please run 'allopockets-install-deps' or install dssp manually."
-                    )
+                    raise RuntimeError("mkdssp (dssp) is not installed.")
+
+                import subprocess
+
                 result = subprocess.run(
-                    [dssp_bin, "--calculate-accessibility", f.name, f"{tmpdir}/out.cif"],
-                    capture_output=True,
+                    [dssp_bin, "--calculate-accessibility", pdb_file, cif_out], capture_output=True
                 )
                 if result.returncode != 0:
-                    raise RuntimeError(
-                        f"dssp failed with code {result.returncode}: {result.stderr.decode()}"
+                    result = subprocess.run(
+                        [dssp_bin, "--write-experimental", pdb_file, cif_out], capture_output=True
                     )
-                chains_dfs.append(
-                    self._get_chain_df(Cif(self._cif._name, f"{tmpdir}/out.cif").cif.data)
-                )
+                    if result.returncode != 0:
+                        result = subprocess.run([dssp_bin, pdb_file, cif_out], capture_output=True)
+                        if result.returncode != 0:
+                            raise RuntimeError(f"dssp failed: {result.stderr.decode()}")
+
+                from pdbecif.mmcif_io import CifFileReader
+
+                cif_data = CifFileReader().read(cif_out)
+                first_block = list(cif_data.keys())[0]
+                chains_dfs.append(self._get_chain_df(cif_data[first_block]))
+
+        import pandas as pd
 
         return pd.concat((chains_dfs))
 
     features = ["dssp"]
 
 
-FClasses = [
+# Features without ddG (185 multi-modal features, 100% open-source, no PyRosetta or OpenMM required)
+FClasses_no_ddg = [
+    GrapheinF,
+    FreeSASAF,
+    DSSPF,
+    MelodiaF,
+    BiopythonF,
+    ProDyF,
+    TransferEntropyF,
+    HHBlitsF,
+]
+
+# Features with OpenMM continuous physical ddG (186 multi-modal features, GPU-accelerated)
+FClasses_openmm = [
+    GrapheinF,
+    FreeSASAF,
+    DSSPF,
+    MelodiaF,
+    BiopythonF,
+    OpenMMF,
+    ProDyF,
+    TransferEntropyF,
+    HHBlitsF,
+]
+
+# Features with PyRosetta ddG (186 features)
+FClasses_rosetta = [
+    GrapheinF,
+    FreeSASAF,
+    DSSPF,
+    MelodiaF,
+    BiopythonF,
+    PyRosettaF,
+    ProDyF,
+    TransferEntropyF,
+    HHBlitsF,
+]
+
+# Full feature suite including both ddG methods
+FClasses_full = [
     GrapheinF,
     FreeSASAF,
     DSSPF,
@@ -968,6 +1033,9 @@ FClasses = [
     TransferEntropyF,
     HHBlitsF,
 ]
+
+# Use FClasses_no_ddg by default to eliminate heavy, slow, or proprietary ddG dependencies
+FClasses = FClasses_no_ddg
 
 
 def get_colabfold_msa(clean_pdb, email, path=path):
@@ -985,11 +1053,12 @@ def get_colabfold_msa(clean_pdb, email, path=path):
         assert calculated, f"ColabFold MSA retrieval failed"
 
 
-def get_features(clean_pdb, uniref_path=None, path=path):
+def get_features(clean_pdb, uniref_path=None, path=path, fclasses=None):
     os.makedirs(f"{path}/features/{clean_pdb.entry_id}", exist_ok=True)
     HHBlitsF.uniref_path = uniref_path
 
-    progressbar = tqdm(FClasses)
+    active_fclasses = fclasses or FClasses
+    progressbar = tqdm(active_fclasses)
     for fc in progressbar:
         progressbar.set_description(f"Calculating {fc.__name__[:-1]}")
         file = f"{path}/features/{clean_pdb.entry_id}/{fc.__name__}.pkl"
@@ -1056,7 +1125,7 @@ def get_pockets_features(clean_pdb, pockets, features, path=path):
     )
 
 
-def load_default_predictor(model_path=None, model_name="minimal_lgbm"):
+def load_default_predictor(model_path=None, model_name="no_ddg_lgbm"):
     """
     Load trained model. Prefers lightweight PocketClassifier (LightGBM/XGBoost/HistGBM),
     with automatic download and cross-platform caching (~/.cache/allopockets/models/),
@@ -1074,7 +1143,15 @@ def load_default_predictor(model_path=None, model_name="minimal_lgbm"):
 
             return TabularPredictor.load(str(p))
 
-    # 2. Check model hub (cache, local repo, or auto-download)
+    # 2. Check local repo models/<model_name>
+    repo_root = cwd.parent
+    local_model_dir = repo_root / f"models/{model_name}"
+    if (local_model_dir / "model.joblib").exists():
+        from allopockets.ml.models import PocketClassifier
+
+        return PocketClassifier.load(local_model_dir)
+
+    # 3. Check model hub (cache, local repo, or auto-download)
     try:
         from allopockets.ml.hub import get_model_dir
         from allopockets.ml.models import PocketClassifier
@@ -1086,8 +1163,7 @@ def load_default_predictor(model_path=None, model_name="minimal_lgbm"):
         logger = logging.getLogger(__name__)
         logger.warning(f"Could not load model '{model_name}' from hub: {e}")
 
-    # 3. Fallback to legacy models/lgbm_pocket_classifier or models/pockets_physchem_deploy
-    repo_root = cwd.parent
+    # 4. Fallback to legacy models/lgbm_pocket_classifier or models/pockets_physchem_deploy
     lgbm_dir = repo_root / "models/lgbm_pocket_classifier"
     if (lgbm_dir / "model.joblib").exists():
         from allopockets.ml.models import PocketClassifier
@@ -1130,7 +1206,7 @@ def predict(
     uniref_path=None,
     model=None,
     model_path=None,
-    model_name="minimal_lgbm",
+    model_name="no_ddg_lgbm",
 ):
     if all(i is None for i in [email, uniref_path]):
         print("One of 'email' or 'uniref_path' must be passed appropriately")
@@ -1157,18 +1233,36 @@ def predict(
         # ColabFold MSA if necessary:
         get_colabfold_msa(clean_pdb, email=email, path=path)
 
-    # Features
-    features = get_features(clean_pdb, path=path, uniref_path=uniref_path)
-
-    pockets_features = get_pockets_features(clean_pdb, pockets, features, path=path)
-
-    # Load predictor
+    # Load predictor first to inspect feature requirements
     predictor = model or load_default_predictor(model_path=model_path, model_name=model_name)
     if predictor is None:
         raise RuntimeError(
-            "No trained model found. Please train a model with 'allopockets train' "
-            "or download weights with 'allopockets download-model --model minimal_lgbm'."
+            f"No trained model found for '{model_name}'. Please train a model with 'allopockets train' "
+            f"or download weights with 'allopockets download-model --model {model_name}'."
         )
+
+    # Determine required feature classes
+    if hasattr(predictor, "feature_names") and predictor.feature_names:
+        has_openmm = any("openmm" in f.lower() for f in predictor.feature_names)
+        has_rosetta = any(
+            "rosetta" in f.lower() or ("ddg" in f.lower() and "openmm" not in f.lower())
+            for f in predictor.feature_names
+        )
+        if has_openmm and has_rosetta:
+            active_fclasses = FClasses_full
+        elif has_openmm:
+            active_fclasses = FClasses_openmm
+        elif has_rosetta:
+            active_fclasses = FClasses_rosetta
+        else:
+            active_fclasses = FClasses_no_ddg
+    else:
+        active_fclasses = FClasses_no_ddg
+
+    # Features
+    features = get_features(clean_pdb, path=path, uniref_path=uniref_path, fclasses=active_fclasses)
+
+    pockets_features = get_pockets_features(clean_pdb, pockets, features, path=path)
 
     if hasattr(predictor, "predict_score"):
         data = prepare_data(pockets_features, as_tabular_dataset=False)

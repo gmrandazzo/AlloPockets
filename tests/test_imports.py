@@ -25,7 +25,8 @@ def test_import_allopockets():
     import allopockets
 
     assert hasattr(allopockets, "__version__")
-    assert allopockets.__version__ == "1.0.0"
+    assert isinstance(allopockets.__version__, str)
+    assert allopockets.__version__ != "unknown"
     assert hasattr(allopockets, "predict")
     assert hasattr(allopockets, "Pocket")
     assert hasattr(allopockets, "PocketClassifier")

@@ -1,0 +1,76 @@
+{
+  "LightGBM_no_ddG": {
+    "n_features": 185,
+    "oof": {
+      "mcc": 0.14393327352097285,
+      "f1": 0.13559322033898305,
+      "balanced_accuracy": 0.5441335066227913,
+      "roc_auc": 0.8089668076947893,
+      "pr_auc": 0.12333061667064409,
+      "tp": 4,
+      "fp": 12,
+      "tn": 2511,
+      "fn": 39
+    },
+    "oof_retrieval": {
+      "evaluated_pdbs": 40,
+      "top_1_accuracy": 0.175,
+      "top_3_accuracy": 0.425,
+      "top_5_accuracy": 0.525
+    },
+    "test": {
+      "mcc": 0.19885487882203523,
+      "f1": 0.18181818181818182,
+      "balanced_accuracy": 0.5610994397759104,
+      "roc_auc": 0.8452380952380952,
+      "pr_auc": 0.17014426131370003,
+      "tp": 1,
+      "fp": 2,
+      "tn": 712,
+      "fn": 7
+    },
+    "test_retrieval": {
+      "evaluated_pdbs": 8,
+      "top_1_accuracy": 0.25,
+      "top_3_accuracy": 0.375,
+      "top_5_accuracy": 0.5
+    }
+  },
+  "XGBoost_no_ddG": {
+    "n_features": 185,
+    "oof": {
+      "mcc": 0.07276139151934874,
+      "f1": 0.07017543859649122,
+      "balanced_accuracy": 0.5208776926693028,
+      "roc_auc": 0.8497036565919125,
+      "pr_auc": 0.10698085569106597,
+      "tp": 2,
+      "fp": 12,
+      "tn": 2511,
+      "fn": 41
+    },
+    "oof_retrieval": {
+      "evaluated_pdbs": 40,
+      "top_1_accuracy": 0.15,
+      "top_3_accuracy": 0.45,
+      "top_5_accuracy": 0.575
+    },
+    "test": {
+      "mcc": 0.2461667294089752,
+      "f1": 0.2,
+      "balanced_accuracy": 0.5617997198879552,
+      "roc_auc": 0.8870798319327731,
+      "pr_auc": 0.15800645738038147,
+      "tp": 1,
+      "fp": 1,
+      "tn": 713,
+      "fn": 7
+    },
+    "test_retrieval": {
+      "evaluated_pdbs": 8,
+      "top_1_accuracy": 0.25,
+      "top_3_accuracy": 0.375,
+      "top_5_accuracy": 0.375
+    }
+  }
+}

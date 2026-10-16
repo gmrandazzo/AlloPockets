@@ -35,7 +35,12 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 MODELS_DIR = REPO_ROOT / "models"
 DEFAULT_OUT_DIR = REPO_ROOT / "dist" / "models"
 
-DEFAULT_MODELS = ["minimal_lgbm", "minimal_xgboost"]
+DEFAULT_MODELS = [
+    "minimal_lgbm",
+    "minimal_xgboost",
+    "no_ddg_lgbm",
+    "no_ddg_xgboost",
+]
 
 
 def compute_sha256(filepath: Path) -> str:
